@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Home Assistant Community Add-on: Lutron Certificate
+# Run the cert server
+# ==============================================================================
+bashio::log.info "Starting Lutron certificate server..."
+exec python3 /opt/lutron/cert_server.py
