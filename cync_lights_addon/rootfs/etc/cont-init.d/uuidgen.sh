@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv bashio
 # ==============================================================================
-# Home Assistant Community Add-on: Lutron Certificate
+# Home Assistant Custom Add-on: Cync Server
 # Ensure we have a valid UUID to work with
 # ==============================================================================
-dbus-uuidgen --ensure
+# dbus-uuidgen --ensure
