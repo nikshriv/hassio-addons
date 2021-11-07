@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bashio
 # ==============================================================================
-# Home Assistant Community Add-on: Lutron Certificate
-# Run the cert server
+# Home Assistant Custom Add-on: Cync Server
+# Run the server
 # ==============================================================================
-bashio::log.info "Starting Lutron certificate server..."
-exec python3 /opt/lutron/cert_server.py
+bashio::log.info "Starting Cync server..."
+exec python3 /opt/cync/cync_server.py
