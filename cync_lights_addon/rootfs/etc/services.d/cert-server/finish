@@ -1,7 +1,7 @@
 #!/usr/bin/execlineb -S0
 # ==============================================================================
-# Home Assistant Community Add-on: Lutron Certificate
-# Take down the S6 supervision tree when cert server fails
+# Home Assistant Custom Add-on: Cync Server
+# Take down the S6 supervision tree when cynct server fails
 # ==============================================================================
 if -n { s6-test $# -ne 0 }
 if -n { s6-test ${1} -eq 256 }
