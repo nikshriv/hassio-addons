@@ -1,180 +1,163 @@
-"""
-Server to get Lutron Caseta certificate.
-"""
-import json
-import os
-import re
-import requests
-import socket
-import ssl
+import asyncio
+import struct
+import logging
+import google.auth.transport.grpc
+import google.auth.transport.requests
+import google.oauth2.credentials
+from google.assistant.embedded.v1alpha2 import (embedded_assistant_pb2,embedded_assistant_pb2_grpc)
 
-from flask import (Flask, flash, redirect, render_template, request, session,
-                   url_for)
+ASSISTANT_API_ENDPOINT = 'embeddedassistant.googleapis.com'
+GRPC_DEADLINE = 60 * 3 + 5
 
-from cryptography import x509
-from cryptography.x509.oid import NameOID
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
+SYNC_MSG = bytes.fromhex('43000000')
+PIPE_SYNC_MSG = bytes.fromhex('83000000')
+STATE_CHANGE_MSG = bytes.fromhex('01010605')
 
-from urllib.parse import urlencode
+class CyncHub:
 
-################################################################################
+    def __init__(self, hass: HomeAssistant, user_data):
+        self.cync_credentials = user_data['cync_credentials']
+        self.google_credentials = user_data['google_credentials']
+        self.cync_rooms = {room['name']:CyncRoom(room,self) for room in user_data['cync_room_data']['rooms']}
+        self.id_to_room = user_data['cync_room_data']['switchID_to_room']
+        self.login_code = bytearray.fromhex('13000000') + (10 + len(self.cync_credentials['authorize'])).to_bytes(1,'big') + bytearray.fromhex('03') + self.cync_credentials['user_id'].to_bytes(4,'big') + len(self.cync_credentials['authorize']).to_bytes(2,'big') + bytearray(self.cync_credentials['authorize'],'ascii') + bytearray.fromhex('0000b4')
+        self.google = GoogleAssistantTextRequest(hass, self.google_credentials)
+        self.hass = hass
 
-SSL_PATH = "/ssl/lutron"
-KEY_FILE = "%s/caseta.key" % SSL_PATH
-CERT_FILE = "%s/caseta.crt" % SSL_PATH
-CA_FILE = "%s/caseta-bridge.crt" % SSL_PATH
+    async def start_tcp_client(self):
+        self.reader, self.writer = await asyncio.open_connection('cm.gelighting.com', 23778)
+        self.writer.write(self.login_code)
+        await self.writer.drain()
+        printf('Starting TCP client')
+        
+        self.hass.async_create_task(self._maintain_connection())
+        self.hass.async_create_task(self._read_tcp_messages())
 
-################################################################################
+        return
 
-LOGIN_SERVER = "device-login.lutron.com"
-APP_CLIENT_ID = ("e001a4471eb6152b7b3f35e549905fd8589dfcf57eb680b6fb37f20878c"
-                 "28e5a")
-APP_CLIENT_SECRET = ("b07fee362538d6df3b129dc3026a72d27e1005a3d1e5839eed5ed18"
-                     "c63a89b27")
-APP_OAUTH_REDIRECT_PAGE = "lutron_app_oauth_redirect"
-CERT_SUBJECT = x509.Name([
-    x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-    x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Pennsylvania"),
-    x509.NameAttribute(NameOID.LOCALITY_NAME, "Coopersburg"),
-    x509.NameAttribute(NameOID.ORGANIZATION_NAME,
-                       "Lutron Electronics Co., Inc."),
-    x509.NameAttribute(NameOID.COMMON_NAME, "Lutron Caseta App")
-])
+    async def _read_tcp_messages(self):
+        while True:
+            data = await self.reader.read(1000)
+            msg_indices = [x for x in range(len(data)) if (data[x:x+4] == SYNC_MSG or data[x:x+4] == PIPE_SYNC_MSG) and data[x+9:x+13] == STATE_CHANGE_MSG]
+            for msg_index in msg_indices:
+                switchID = struct.unpack(">I", data[msg_index+5:msg_index+9])[0]
+                state = int(data[msg_index+16]) > 0
+                brightness = int(data[msg_index+17])
+                room_name = self.id_to_room[switchID]
+                room = self.cync_rooms[room_name]
+                room.update_room(switchID,state,brightness)
 
-BASE_URL = "https://%s/" % LOGIN_SERVER
-REDIRECT_URI = "https://%s/%s" % (LOGIN_SERVER, APP_OAUTH_REDIRECT_PAGE)
+    async def _maintain_connection(self):
+        while True:
+            await asyncio.sleep(180)
+            self.writer.write(self.login_code)
+            await self.writer.drain()
 
-AUTHORIZE_URL = ("%soauth/authorize?%s" % (BASE_URL,
-                                           urlencode({
-                                               "client_id": APP_CLIENT_ID,
-                                               "redirect_uri": REDIRECT_URI,
-                                               "response_type": "code"
-                                           })))
+    async def google_assistant_request(self,query):
+        await self.google.assist(query)
+        
+class CyncRoom:
 
-################################################################################
+    def __init__(self, room, hub):
+        self._name = room['name']
+        self._state = room['state']
+        self._brightness = room['brightness']
+        self._switches = room['switches']
+        self._callback = None
+        self.hub = hub
 
-def ensure_path():
-    """Create SSL path if it does not exist."""
-    if not os.path.isdir(SSL_PATH):
-        os.makedirs(SSL_PATH, exist_ok=True)
+    def register_callback(self, callback) -> None:
+        """Register callback, called when Room changes state."""
+        self._callback = callback
 
-################################################################################
+    def remove_callback(self) -> None:
+        """Remove previously registered callback."""
+        self._callback = None
 
-def get_private_key():
-    """Get the private key file used to generate the certificate."""
-    try:
-        with open(KEY_FILE, 'rb') as f:
-            private_key = load_pem_private_key(f.read(), None,
-                                               default_backend())
-    except FileNotFoundError:
-        private_key = rsa.generate_private_key(public_exponent=65537,
-                                               key_size=2048,
-                                               backend=default_backend())
+    async def update_room(self,switchID,state,brightness):
+        self._switches[switchID]['state'] = state
+        self._switches[switchID]['brightness'] = brightness
+        if state != self._state and brightness != self._brightness:
+            all_switches_changed = True
+            for sw in self._switches:
+                if sw['state'] != state and sw['brightness'] != brightness:
+                    all_switches_changed = False
+            if all_switches_changed:
+                self._state = state
+                self._brightness = brightness
+                self.publish_update()
 
-        ensure_path()
-        with open(KEY_FILE, 'wb') as f:
-            f.write(private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
-            ))
-    return private_key
+    async def turn_on(self,brightness):
+        query = 'Set brightness to %d' % (brightness) + '%' + ' for'
+        for sw in self._switches:
+            query = query + ' and ' + self._switches[sw]['name']
+        query = query.replace(' and','',1)
+        await self.hub.google_assistant_request(query)
 
-################################################################################
+    async def turn_off(self):
+        query = 'Turn off'
+        for sw in self._switches:
+            query = query + ' and ' + self._switches[sw]['name']
+        query = query.replace(' and','',1)
+        await self.hub.google_assistant_request(query)
 
-def get_certificate(oauth_code):
-    """Get the certificate file used to generate the CA file."""
-    try:
-        with open(CERT_FILE, 'rb') as f:
-            certificate = x509.load_pem_x509_certificate(f.read(),
-                                                         default_backend())
-    except FileNotFoundError:
-        private_key = get_private_key()
+    async def publish_update(self):
+        self._callback()
 
-        csr = (x509.CertificateSigningRequestBuilder()
-               .subject_name(CERT_SUBJECT)
-               .sign(private_key, hashes.SHA256(), default_backend()))
+    @property
+    def name(self):
+        return self._name
 
-        if not oauth_code:
-            raise ValueError("Received invalid OAuth code. Please try again.")
+    @property
+    def state(self):
+        return self._state
 
-        token = requests.post("%soauth/token" % BASE_URL, data={
-            'code': oauth_code,
-            'client_id': APP_CLIENT_ID,
-            'client_secret': APP_CLIENT_SECRET,
-            'redirect_uri': REDIRECT_URI,
-            'grant_type': 'authorization_code'}).json()
+    @property
+    def brightness(self):
+        return self._brightness
 
-        if 'error' in token:
-            raise ValueError(token['error_description'])
+class GoogleAssistantTextRequest():
 
-        if token.get('token_type') != 'bearer':
-            raise ValueError("Received invalid token %s. Try generating a "
-                             "new code (one time use)." % token)
+    def __init__(self, hass, credentials):
+        self.credentials = google.oauth2.credentials.Credentials.from_authorized_user_info(credentials)
+        self.http_request = google.auth.transport.requests.Request()
+        self.grpc_channel = None
+        self.assistant = None
+        self.hass = hass
 
-        access_token = token['access_token']
+    async def assist(self, text_query):
 
-        pairing_request_content = {
-            'remote_signs_app_certificate_signing_request':
-            csr.public_bytes(serialization.Encoding.PEM).decode('ASCII')
-        }
+        def send_query():
+            self.grpc_channel = google.auth.transport.grpc.secure_authorized_channel(self.credentials, self.http_request, ASSISTANT_API_ENDPOINT)
+            self.assistant = embedded_assistant_pb2_grpc.EmbeddedAssistantStub(self.grpc_channel)
 
-        pairing_response = requests.post(
-            "%sapi/v1/remotepairing/application/user" % BASE_URL,
-            json=pairing_request_content,
-            headers={
-                'X-DeviceType': 'Caseta,RA2Select',
-                'Authorization': 'Bearer %s' % access_token
-            }
-        ).json()
+            def iter_assist_requests():
+                config = embedded_assistant_pb2.AssistConfig(
+                    audio_out_config=embedded_assistant_pb2.AudioOutConfig(
+                        encoding='LINEAR16',
+                        sample_rate_hertz=16000,
+                        volume_percentage=0,
+                    ),
+                    dialog_state_in=embedded_assistant_pb2.DialogStateIn(
+                        language_code = 'en-US',
+                        conversation_state = None,
+                        is_new_conversation = True,
+                    ),
+                    device_config=embedded_assistant_pb2.DeviceConfig(
+                        device_id='5a1b2c3d4',
+                        device_model_id='assistant',
+                    ),
+                    text_query=text_query
+                )
+                req = embedded_assistant_pb2.AssistRequest(config=config)
+                yield req
 
-        app_cert = pairing_response['remote_signs_app_certificate']
-        remote_cert = pairing_response['local_signs_remote_certificate']
-
-        ensure_path()
-        with open(CERT_FILE, 'wb') as f:
-            f.write(app_cert.encode('ASCII'))
-            f.write(remote_cert.encode('ASCII'))
-
-################################################################################
-
-def get_ca_cert(server_addr):
-    raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ssl_socket = ssl.wrap_socket(raw_socket, keyfile=KEY_FILE,
-                                 certfile=CERT_FILE,
-                                 ssl_version=ssl.PROTOCOL_TLSv1_2)
-
-    ssl_socket.connect((server_addr, 8081))
-
-    ca_der = ssl_socket.getpeercert(True)
-    ca_cert = x509.load_der_x509_certificate(ca_der, default_backend())
-
-    ensure_path()
-    with open(CA_FILE, 'wb') as f:
-        f.write(ca_cert.public_bytes(serialization.Encoding.PEM))
-
-    ssl_socket.send(("%s\r\n" % json.dumps({
-        'CommuniqueType': 'ReadRequest',
-        'Header': {'Url': '/server/1/status/ping'}
-    })).encode('UTF-8'))
-
-    while True:
-        buffer = b''
-        while not buffer.endswith(b'\r\n'):
-            buffer += ssl_socket.read()
-
-        leap_response = json.loads(buffer.decode('UTF-8'))
-        if leap_response['CommuniqueType'] == 'ReadResponse':
-            break
-
-    ssl_socket.close()
-
-    return leap_response
-
-################################################################################
+            [resp for resp in self.assistant.Assist(iter_assist_requests(),GRPC_DEADLINE)]
+            self.credentials.refresh(self.http_request)
+        
+        return await self.hass.async_add_executor_job(send_query)
+        
+      
 
 # Flask webserver
 app = Flask(__name__)
