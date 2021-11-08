@@ -160,71 +160,9 @@ class GoogleAssistantTextRequest():
 
 # Flask webserver
 app = Flask(__name__)
-
-# Flask app config
-with open('/var/lib/dbus/machine-id', 'r') as f:
-    app.secret_key = f.read()
-
-@app.route('/', methods=['GET', 'POST'])
-def wizard():
-    """Show the current step based on progress."""
-    if os.path.isfile(CA_FILE):
-        leap_version = session.get('leap_version')
-        if leap_version is not None:
-            flash("Successfully connected to bridge, running LEAP Server"
-                  "version %s" % leap_version, 'success')
-
-        return render_template(
-            'success.html',
-            server_addr=session.get('server_addr', '192.168.1.100'),
-            ssl_path=SSL_PATH,
-            ssl_files={'key_file': KEY_FILE,
-                       'cert_file': CERT_FILE,
-                       'ca_file': CA_FILE})
-
-    if os.path.isfile(CERT_FILE):
-        return render_template(
-            'bridge.html',
-            server_addr=session.get('server_addr', ''))
-
-    return render_template('login.html', authorize_url=AUTHORIZE_URL)
-
-@app.route('/reset')
-def reset():
-    """Delete certificate files and session data."""
-    try:
-        # Remove certificate files
-        os.remove(KEY_FILE)
-        os.remove(CERT_FILE)
-        os.remove(CA_FILE)
-
-        # Clear session data
-        session.clear()
-    except FileNotFoundError:
-        pass
-
-    # Alert user that session has been reset
-    flash("The certificate files have been deleted and your session "
-          "has been reset.", 'warning')
-
-    return redirect(url_for('wizard'))
-
-@app.route('/debug')
-def debug():
-    """Output session data for debugging."""
-    values = {k: v for (k, v) in session.items()}
-    values.update({
-        'key_file': (KEY_FILE, os.path.isfile(KEY_FILE)),
-        'cert_file': (CERT_FILE, os.path.isfile(CERT_FILE)),
-        'ca_file': (CA_FILE, os.path.isfile(CA_FILE)),
-    })
-    return app.response_class(response=json.dumps(values),
-                              status=200,
-                              mimetype='application/json')
-
 ################################################################################
 
-@app.route('/process_url', methods=['POST'])
+@app.route('/init', methods=['POST'])
 def process_url():
     """Process the redirect URL."""
     redirected_url = request.form.get('redirected_url')
@@ -258,10 +196,6 @@ def process_addr():
 
 def main():
     """Main program routine."""
-    # Make sure SSL_PATH exists
-    ensure_path()
-
-    # Start flask server
     app.run(host='0.0.0.0', port=5817)
 
 ################################################################################
