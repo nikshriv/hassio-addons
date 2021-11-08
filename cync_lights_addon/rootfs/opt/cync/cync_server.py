@@ -1,6 +1,5 @@
 import asyncio
 import struct
-import logging
 import google.auth.transport.grpc
 import google.auth.transport.requests
 import google.oauth2.credentials
