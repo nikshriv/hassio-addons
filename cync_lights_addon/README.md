@@ -1,4 +1,4 @@
-# cync-light-addon
+# cync-lights-addon
 ## About
 A Home Assistant add-on to enable monitoring and control of Cync dimmer light switches. Works in conjunction with Cync Room Lights integration.
 
