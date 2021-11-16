@@ -6,17 +6,17 @@ ENV LANG C.UTF-8
 
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-EXPOSE 3000/tcp
+EXPOSE 3001/tcp
+EXPOSE 23778/tcp
 
 RUN apk add --no-cache \
     nodejs \
     npm \
-    ffmpeg \
     git && \
     cd / && \
-    git clone https://github.com/jeroenterheerdt/ring-hassio && \
-    cd ring-hassio/ring_hassio && \
+    git clone https://github.com/nikshriv/hassio-addons && \
+    cd /hassio-addons/cync_lights_addon && \
     npm install --unsafe-perm && \
     chmod a+x run.sh
 
-CMD [ "/ring-hassio/ring_hassio/run.sh" ]
+CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
