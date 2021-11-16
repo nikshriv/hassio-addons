@@ -1,7 +1,0 @@
-#!/usr/bin/with-contenv bashio
-# ==============================================================================
-# Home Assistant Custom Add-on: Cync Server
-# Run the server
-# ==============================================================================
-bashio::log.info "Starting Cync server..."
-exec python3 /opt/cync/cync_server.py
