@@ -3,7 +3,6 @@
     "version": "0.1.0",
     "slug": "cync_lights_addon",
     "description": "A Home Assistant add-on to enable monitoring and control of Cync dimmer switches.",
-    "url": "https://github.com/nikshriv/hassio-addons/cync_lights_addon",
     "startup": "application",
     "arch": [
       "aarch64",
