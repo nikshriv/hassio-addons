@@ -22,8 +22,8 @@ function connectToHomeAssistant(){
 				break
 			case 'event': // receive home assistant switch state changes
 				if (resp.id == 2) {
-                    console.log(resp.event.data)
-                }
+                    			console.log(resp.event.data)
+               			}
 		}
 	})
 	haWebsocket.on('error',function(err){
