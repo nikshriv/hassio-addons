@@ -1,4 +1,5 @@
 const WebSocket = require('ws').WebSocket
+const process = require('process')
 const token = process.env.SUPERVISOR_TOKEN
 var haWebsocket
 
