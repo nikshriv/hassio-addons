@@ -4,7 +4,7 @@ const token = process.env.SUPERVISOR_TOKEN
 connectToHomeAssistant()
 
 function connectToHomeAssistant(){
-	haWebsocket = new WebSocket('ws://supervisor/core/websocket')
+	haWebsocket = new WebSocket('wss://supervisor/core/websocket')
 
 	haWebsocket.on('message',function(data){
 		resp = JSON.parse(data.toString())
