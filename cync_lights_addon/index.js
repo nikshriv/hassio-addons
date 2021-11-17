@@ -5,19 +5,11 @@ var haWebsocket
 connectToHomeAssistant()
 
 function connectToHomeAssistant(){
-	try {
-		haWebsocket = new WebSocket('wss://supervisor/core/websocket')
-	} catch(error) {
-		console.log(error)
-		try {
-			haWebsocket = new WebSocket('ws://supervisor/core/websocket')
-		} catch(err) {
-			console.log(err)
-		}
-	}
+	haWebsocket = new WebSocket('ws://supervisor/core/websocket')
 
 	haWebsocket.on('message',function(data){
 		resp = JSON.parse(data.toString())
+		console.log(resp)
 		switch (resp.type){
 			case 'auth_required':
 				// log in to home assistant
