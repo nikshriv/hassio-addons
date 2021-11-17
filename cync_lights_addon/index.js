@@ -1,7 +1,6 @@
 const WebSocket = require('ws').WebSocket
 const process = require('process')
 const token = process.env.SUPERVISOR_TOKEN
-console.log(process.env)
 var haWebsocket
 
 connectToHomeAssistant()
