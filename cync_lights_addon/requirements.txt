@@ -1,0 +1,2 @@
+google-assistant-sdk[samples]
+google-auth-oauthlib
