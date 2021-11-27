@@ -1,7 +1,7 @@
 {
-    "name": "Cync Light Addon",
+    "name": "Cync Lights Addon",
     "version": "0.1.0",
-    "slug": "cync_lights_addon",
+    "slug": "cync-lights",
     "description": "A Home Assistant add-on to enable monitoring and control of Cync dimmer switches.",
     "startup": "application",
     "arch": [
@@ -15,11 +15,9 @@
     "homeassistant_api":true,
     "ports": {
         "3001/tcp": 3001,
-        "23778/tcp": 23778
     },
     "ports_description": {
         "3001/tcp": "The port for Cync Room Lights integration to communicate with this addon",
-        "23778/tcp": "Port required for communication with Cync servers, do not change"
     },
     "options": {
         "port": 3001
