@@ -17,7 +17,7 @@
         "3001/tcp": 3001
     },
     "ports_description": {
-        "3001/tcp": "The port for Cync Room Lights integration to communicate with this addon",
+        "3001/tcp": "The port for Cync Room Lights integration to communicate with this addon"
     },
     "options": {
         "port": 3001
