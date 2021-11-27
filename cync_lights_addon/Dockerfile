@@ -19,7 +19,6 @@ RUN apk add --no-cache \
     cd /hassio-addons/cync_lights_addon && \
     npm install pm2 -g && \
     npm install --unsafe-perm && \
-    pip install --no-cache-dir google-assistant-sdk[samples] google-auth-oauthlib && \
     chmod a+x run.sh
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
