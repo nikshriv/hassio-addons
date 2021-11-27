@@ -1,4 +1,4 @@
-ARG BUILD_FROM=hassioaddons/base-python:7.2.0
+ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 # Set shell
