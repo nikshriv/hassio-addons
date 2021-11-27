@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     git && \
-    python3 -m ensurepip --upgrade && \
+    python -m ensurepip --upgrade && \
     cd / && \
     git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
