@@ -17,7 +17,6 @@ RUN apk add --no-cache \
     npm install --unsafe-perm && \
     chmod a+x run.sh
   
-RUN pip install google-auth-oauthlib
-RUN pip install --upgrade google-assistant-sdk[samples]
+RUN pip install google-auth-oauthlib google-assistant-sdk
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
