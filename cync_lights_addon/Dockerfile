@@ -1,4 +1,4 @@
-FROM python:3.9.9-apline3.14
+FROM python:3.9.9-alpine3.14
 
 # Add env
 ENV LANG C.UTF-8
