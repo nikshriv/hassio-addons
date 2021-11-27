@@ -14,12 +14,19 @@ RUN apk add --no-cache \
     python3 \
     git && \
     python3 -m ensurepip && \
+    rm -r /usr/lib/python*/ensurepip && \
+    pip3 install --upgrade pip setuptools && \
+        ln -sf /usr/bin/python3 /usr/bin/python && \
+        ln -sf /usr/bin/python3-config /usr/bin/python-config && \
+        ln -sf /usr/bin/pydoc3 /usr/bin/pydoc && \
+        ln -sf /usr/bin/pip3 /usr/bin/pip && \
+    rm -r /root/.cache && \
     cd / && \
     git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
     npm install pm2 -g && \
     npm install --unsafe-perm && \
-    pip3 install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt && \
     chmod a+x run.sh
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
