@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     python3 \
+    py3-pip \
     git && \
     cd / && \
     git clone https://github.com/nikshriv/hassio-addons && \
