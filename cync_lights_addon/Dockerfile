@@ -1,4 +1,8 @@
-FROM python:3.9.9-alpine3.14
+ARG BUILD_FROM=hassioaddons/base-python:7.2.0
+FROM ${BUILD_FROM}
+
+# Set shell
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Add env
 ENV LANG C.UTF-8
@@ -11,7 +15,7 @@ RUN apk add --no-cache \
     git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
     npm install --unsafe-perm && \
-    pip install --no-cache-dir -r google-auth-oauthlib && \
+    pip3 install --no-cache-dir -r /hassio-addons/cync_lights_addon/requirements.txt && \
     chmod a+x run.sh
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
