@@ -4,10 +4,6 @@ FROM $BUILD_FROM
 # Add env
 ENV LANG C.UTF-8
 
-# Set shell
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-EXPOSE 3001/tcp
-
 RUN apk add --no-cache \
     nodejs \
     npm \
