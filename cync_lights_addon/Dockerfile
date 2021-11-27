@@ -24,9 +24,8 @@ RUN apk add --no-cache \
     cd / && \
     git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
-    npm install pm2 -g && \
     npm install --unsafe-perm && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r ./requirements.txt && \
     chmod a+x run.sh
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
