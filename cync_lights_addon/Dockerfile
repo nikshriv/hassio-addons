@@ -27,6 +27,6 @@ RUN apk add --no-cache \
     chmod a+x run.sh
  
 RUN cd /hassio-addons/cync_lights_addon && \
-    pip3 install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
