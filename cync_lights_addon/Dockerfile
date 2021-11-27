@@ -26,7 +26,6 @@ RUN apk add --no-cache \
     npm install --unsafe-perm && \
     chmod a+x run.sh
  
-RUN cd /hassio-addons/cync_lights_addon && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r /hassio-addons/cync_lights_addon/requirements.txt
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
