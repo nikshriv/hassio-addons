@@ -15,8 +15,9 @@ RUN apk add --no-cache \
     git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
     npm install --unsafe-perm && \
+    python -m pip install --upgrade pip setuptools wheel && \
     chmod a+x run.sh
-  
-RUN pip install google-auth-oauthlib google-assistant-sdk
+
+RUN pip install google-auth-oauthlib google-assistant-sdk[samples]
 
 CMD [ "/hassio-addons/cync_lights_addon/run.sh" ]
