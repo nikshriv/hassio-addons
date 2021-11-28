@@ -1,2 +1,0 @@
-google-assistant-sdk[samples]==0.6.0
-google-auth-oauthlib==0.4.6
