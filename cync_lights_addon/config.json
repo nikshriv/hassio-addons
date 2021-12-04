@@ -13,7 +13,6 @@
     ],
     "boot":"auto",
     "homeassistant_api":true,
-    "host_network":true,
     "ports": {
         "3001/tcp": 3001
     },
