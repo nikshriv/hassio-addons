@@ -193,7 +193,7 @@ app.post('/setup', function (req, res) {
 	files.writeFileSync('cync_data.json',JSON.stringify(req.body))
 	res.send('Received configuration data')
 })
-app.post('/init', function (req, res) {
+app.get('/init', function (req, res) {
 	console.log('Initializing')
 	if (cync_data){
 		cync_credentials = new Uint8Array(cync_data['cync_credentials'])
