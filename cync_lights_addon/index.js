@@ -8,7 +8,6 @@ const {spawn} = require('child_process')
 var express = require('express')
 var app = express()
 
-var haSupervisorToken = process.env.SUPERVISOR_TOKEN
 var haWebsocket = null
 var haEntityIDs = {}
 var googleAssistant = null
@@ -24,7 +23,7 @@ function connectToHomeAssistant(){
 		switch (resp.type){
 			case 'auth_required':
 				// log in to home assistant
-				haWebsocket.send('{"type":"auth","access_token":"' + haSupervisorToken + '"}')
+				haWebsocket.send('{"type":"auth","access_token":"' + process.env.SUPERVISOR_TOKEN + '"}')
 				break
 			case 'auth_ok':
 				haWebsocket.send('{"id":"1","type":"get_states"}') //get attributes of devices in Home Assistant
@@ -40,7 +39,7 @@ function connectToHomeAssistant(){
 				}
 				break
 			case 'event': // receive home assistant switch state changes
-				var room = resp.event.data.attributes.friendly_name 
+				var room = resp.event.data.new_state.attributes.friendly_name 
 				if (resp.id == 2 && cync_data['cync_room_data']['rooms'][room]) {				
 					if (resp.event.data.new_state.state == 'off' && cync_data['cync_room_data']['rooms'][room].state){
 						cync_data['cync_room_data']['rooms'][room].state = false
@@ -103,14 +102,14 @@ function monitorCbygeSwitches() {
 							if (!currentStateAll){
 								cync_data['cync_room_data']['rooms'][room].state = power
 								cync_data['cync_room_data']['rooms'][room].brightness = brightness
-								http.post('http://supervisor/core/api/services/light/turn_off',{entity_id:haEntityIDs[room]},{headers: {Authorization: 'Bearer ' + haSupervisorToken}})
+								http.post('http://supervisor/core/api/services/light/turn_off',{entity_id:haEntityIDs[room]},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 								.catch(function(err){console.log(err)})								
 							}
 						}
 						else if (power && (!cync_data['cync_room_data']['rooms'][room].state || cync_data['cync_room_data']['rooms'][room].brightness != brightness)){
 							cync_data['cync_room_data']['rooms'][room].state = power
 							cync_data['cync_room_data']['rooms'][room].brightness = brightness
-							http.post('http://supervisor/core/api/services/light/turn_on',{entity_id:haEntityIDs[room],brightness_pct:brightness},{headers: {Authorization: 'Bearer ' + haSupervisorToken}})
+							http.post('http://supervisor/core/api/services/light/turn_on',{entity_id:haEntityIDs[room],brightness:Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 							.catch(function(err){console.log(err)})
 						}
 						console.log("device: ", deviceId,"\tpower on: ", power,"\tbrightness: ", brightness)
