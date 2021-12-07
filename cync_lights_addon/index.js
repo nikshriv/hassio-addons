@@ -26,21 +26,25 @@ function connectToHomeAssistant(){
 				haWebsocket.send('{"type":"auth","access_token":"' + process.env.SUPERVISOR_TOKEN + '"}')
 				break
 			case 'auth_ok':
+				console.log('Websocket connection to HA started...')
 				haWebsocket.send('{"id":"1","type":"get_states"}') //get attributes of devices in Home Assistant
 				haWebsocket.send('{"id":"2","type":"subscribe_events","event_type":"state_changed"}') // subscribe to cbyge switch state changes
 				break
 			case 'result': // store entity_ids in haEntityIDs
 				if (resp.id == 1) {
+					console.log('HA current states received')
 					resp.result.forEach(function(switchResult){
 						if (switchResult.attributes.device_type == 'cync') {
 							haEntityIDs[switchResult.attributes.friendly_name] = switchResult.entity_id
+							console.log(switchResult.attributes.friendly_name, switchResult.entity_id)
 						}
 					})
 				}
 				break
 			case 'event': // receive home assistant switch state changes
 				var room = resp.event.data.new_state.attributes.friendly_name 
-				if (resp.id == 2 && cync_data['cync_room_data']['rooms'][room]) {				
+				if (resp.id == 2 && cync_data['cync_room_data']['rooms'][room]) {
+					console.log(room,resp.event.data.new_state.state)				
 					if (resp.event.data.new_state.state == 'off' && cync_data['cync_room_data']['rooms'][room].state){
 						cync_data['cync_room_data']['rooms'][room].state = false
 						cync_data['cync_room_data']['rooms'][room].brightness = 0
@@ -102,15 +106,17 @@ function monitorCbygeSwitches() {
 							if (!currentStateAll){
 								cync_data['cync_room_data']['rooms'][room].state = power
 								cync_data['cync_room_data']['rooms'][room].brightness = brightness
+								console.log('Turning off ' + haEntityIDs[room])
 								http.post('http://supervisor/core/api/services/light/turn_off',{entity_id:haEntityIDs[room]},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-								.catch(function(err){console.log(err)})								
+								.catch(function(err){console.log(err.message)})								
 							}
 						}
 						else if (power && (!cync_data['cync_room_data']['rooms'][room].state || cync_data['cync_room_data']['rooms'][room].brightness != brightness)){
 							cync_data['cync_room_data']['rooms'][room].state = power
 							cync_data['cync_room_data']['rooms'][room].brightness = brightness
+							console.log("Turning on " + haEntityIDs[room])
 							http.post('http://supervisor/core/api/services/light/turn_on',{entity_id:haEntityIDs[room],brightness:Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-							.catch(function(err){console.log(err)})
+							.catch(function(err){console.log(err.message)})
 						}
 						console.log("device: ", deviceId,"\tpower on: ", power,"\tbrightness: ", brightness)
 					}
@@ -136,6 +142,7 @@ function monitorCbygeSwitches() {
 function startGoogleAssistant(credentials){
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
+		console.log('Google Assistant started...')
 		googleAssistant.stdin.write('{"credentials":"' + JSON.stringify(credentials) + '"}')
 	})
 	googleAssistant.stdout.on('data',function(data){
