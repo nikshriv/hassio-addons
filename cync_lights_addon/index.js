@@ -136,7 +136,7 @@ function monitorCbygeSwitches() {
 function startGoogleAssistant(credentials){
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
-		googleAssistant.stdin.write('{"credentials":"' + credentials + '"}')
+		googleAssistant.stdin.write('{"credentials":"' + JSON.stringify(credentials) + '"}')
 	})
 	googleAssistant.stdout.on('data',function(data){
 		console.log(data.toString())
