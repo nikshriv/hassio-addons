@@ -59,7 +59,7 @@ async def main():
         req = await reader.read(1000)
         request = json.loads(req)
         if request['credentials']:
-            assistant = GoogleAssistant(request['credentials'])
+            assistant = GoogleAssistant(json.loads(request['credentials']))
         if request['query'] and assistant is not None:
             loop = asyncio.get_event_loop()
             loop.run_in_executor(None, assistant.assist, request['query'])
