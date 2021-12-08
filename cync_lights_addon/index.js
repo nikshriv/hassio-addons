@@ -78,8 +78,9 @@ function monitorCbygeSwitches(cync_credentials) {
 function startGoogleAssistant(credentials){
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
-		console.log("{'credentials':'" + JSON.stringify(credentials) + "'}")
-		googleAssistant.stdin.write("{'credentials':'" + JSON.stringify(credentials) + "'}")
+		var creds = JSON.stringify({'credentials':credentials})
+		console.log(creds)
+		googleAssistant.stdin.write(creds)
 	})
 	googleAssistant.stdout.on('data',function(data){
 		console.log(data.toString())
