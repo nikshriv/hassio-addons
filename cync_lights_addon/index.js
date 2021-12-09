@@ -10,7 +10,7 @@ var app = express()
 
 var googleAssistant = null
 var cbygeTcpServer = null
-var cync_data = null
+var config = null
 
 function monitorCbygeSwitches(cync_credentials) {
 	const type43 = new Uint8Array([0x43,0x00,0x00,0x00])
@@ -29,34 +29,36 @@ function monitorCbygeSwitches(cync_credentials) {
 					var power = data.readUInt8(index + 16) > 0
 					var brightness = data.readUInt8(index + 17)
 					var deviceId = data.readUInt32BE(index + 5).toString()
-					if (cync_data.cync_room_data.switchID_to_room[deviceId]){
-						var room = cync_data.cync_room_data.switchID_to_room[deviceId]
-						if (!power && cync_data.cync_room_data.rooms[room].switches[deviceId].state){
-							cync_data.cync_room_data.rooms[room].switches[deviceId].state = power
+					if (config.cync_room_data.switchID_to_room[deviceId]){
+						var room = config.cync_room_data.switchID_to_room[deviceId]
+						if (!power && config.cync_room_data.rooms[room].switches[deviceId].state){
+							config.cync_room_data.rooms[room].switches[deviceId].state = power
 							var currentStateAll = false
-							for (let sw in cync_data.cync_room_data.rooms[room].switches){
-								if (cync_data.cync_room_data.rooms[room].switches[sw].state){currentStateAll = true}
+							for (let sw in config.cync_room_data.rooms[room].switches){
+								if (config.cync_room_data.rooms[room].switches[sw].state){currentStateAll = true}
 							}
 							if (!currentStateAll){
-								cync_data.cync_room_data.rooms[room].state = power
-								cync_data.cync_room_data.rooms[room].brightness = brightness
+								config.cync_room_data.rooms[room].state = power
+								config.cync_room_data.rooms[room].brightness = brightness
 								console.log('Turning off ' + room)
-								if (cync_data.cync_room_data.rooms[room].entity_id != ''){
-									http.post('http://supervisor/core/api/services/light/turn_off',{'entity_id':cync_data.cync_room_data.rooms[room].entity_id},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+								if (config.cync_room_data.rooms[room].entity_id != ''){
+									console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to off')
+									http.post('http://supervisor/core/api/services/light/turn_off',{'entity_id':config.cync_room_data.rooms[room].entity_id},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 									.catch(function(err){console.log(err.message)})
 								}						
 							}
 						}
-						else if (power && (!cync_data.cync_room_data.rooms[room].state || cync_data.cync_room_data.rooms[room].brightness != brightness)){
-							cync_data.cync_room_data.rooms[room].state = power
-							cync_data.cync_room_data.rooms[room].brightness = brightness
+						else if (power && (!config.cync_room_data.rooms[room].state || config.cync_room_data.rooms[room].brightness != brightness)){
+							config.cync_room_data.rooms[room].state = power
+							config.cync_room_data.rooms[room].brightness = brightness
 							console.log("Turning on " + room)
-							if (cync_data.cync_room_data.rooms[room].entity_id != ''){
-								http.post('http://supervisor/core/api/services/light/turn_on',{'entity_id':cync_data.cync_room_data.rooms[room].entity_id,brightness:Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+							if (config.cync_room_data.rooms[room].entity_id != ''){
+								console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to on')
+								http.post('http://supervisor/core/api/services/light/turn_on',{'entity_id':config.cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 								.catch(function(err){console.log(err.message)})
 							}
 						}
-						console.log("device: ", cync_data.cync_room_data.rooms[room].switches[deviceId].name, "\tpower on: ", power,"\tbrightness: ", brightness)
+						console.log("device: ", config.cync_room_data.rooms[room].switches[deviceId].name, "\tpower on: ", power,"\tbrightness: ", brightness)
 					}
 				}
 			}
@@ -78,15 +80,13 @@ function monitorCbygeSwitches(cync_credentials) {
 function startGoogleAssistant(credentials){
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
-		var creds = JSON.stringify({'credentials':credentials})
-		console.log(creds)
-		googleAssistant.stdin.write(creds)
+		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
 		console.log(data.toString())
 	})
-	googleAssistant.on('error',function(err){
-		console.log(err)
+	googleAssistant.stderr.on('data',function(data){
+		console.log(data.toString())
 	})
 	googleAssistant.on('exit',function(code){
 		console.log('assistant_text_query.py exited with code: ',code)
@@ -94,6 +94,11 @@ function startGoogleAssistant(credentials){
 	googleAssistant.on('close',function(code){
 		console.log('assistant_text_query.py closed with code: ',code)
 	})
+
+	//refresh google credentials every 12 hours
+	setInterval(function(){
+		googleAssistant.stdin.write(JSON.stringify({"refresh":"credentials"}))
+	},43200000)
 }
 
 function googleAssistantQuery(room,state,brightness){
@@ -105,8 +110,8 @@ function googleAssistantQuery(room,state,brightness){
 		} else {
 			query = state ? "Turn on " : "Turn off "
 		}
-		for (let sw in cync_data['cync_room_data']['rooms'][room]['switches']){
-			switchNames = switchNames + "and " + cync_data['cync_room_data']['rooms'][room]['switches'][sw]['name']
+		for (let sw in config.cync_room_data.rooms[room].switches){
+			switchNames = switchNames + "and " + config.cync_room_data.rooms[room].switches[sw].name
 		}
 		switchNames = switchNames.slice(4)
 		query = query + switchNames
@@ -114,14 +119,14 @@ function googleAssistantQuery(room,state,brightness){
 	}
 }
 
-//At addon startup, check if cync_data exists, otherwise wait for setup and initialization from HA
-if (files.existsSync('cync_data.json')){
-	cync_data = JSON.parse(files.readFileSync('cync_data.json','utf8'))
-	if (!cbygeTcpServer){
-		monitorCbygeSwitches(new Uint8Array(cync_data.cync_credentials))
-	}
+//At addon startup, check if config exists, otherwise wait for setup and initialization from HA
+if (files.existsSync('config.json')){
+	config = JSON.parse(files.readFileSync('config.json','utf8'))
 	if (!googleAssistant){
-		startGoogleAssistant(cync_data.google_credentials)
+		startGoogleAssistant(config.google_credentials)
+	}
+	if (!cbygeTcpServer){
+		monitorCbygeSwitches(new Uint8Array(config.cync_credentials))
 	}
 } else {
 	console.log('Please start configuration with Cync Itegration')
@@ -131,34 +136,34 @@ if (files.existsSync('cync_data.json')){
 app.use(express.json()) // for parsing application/json
 app.post('/setup', function (req, res) {
 	console.log('Setting up new instance')
-	cync_data = req.body
-	if (!cbygeTcpServer){
-		monitorCbygeSwitches(new Uint8Array(cync_data.cync_credentials))
-	}
+	config = req.body
 	if (!googleAssistant){
-		startGoogleAssistant(cync_data.google_credentials)
+		startGoogleAssistant(config.google_credentials)
 	}
-	files.writeFileSync('cync_data.json',JSON.stringify(req.body))
+	if (!cbygeTcpServer){
+		monitorCbygeSwitches(new Uint8Array(config.cync_credentials))
+	}
+	files.writeFileSync('config.json',JSON.stringify(req.body))
 	res.send('Received configuration data')
 })
 app.post('/turn-on', function (req, res) {
 	var room = req.body.room
 	var brightness = req.body.brightness
-	if (cync_data.cync_room_data.rooms[room].state == false){
-		cync_data.cync_room_data.rooms[room].state = true
-		cync_data.cync_room_data.rooms[room].brightness = brightness
+	if (config.cync_room_data.rooms[room].state == false){
+		config.cync_room_data.rooms[room].state = true
+		config.cync_room_data.rooms[room].brightness = brightness
 		googleAssistantQuery(room,true,brightness)
-	} else if (cync_data.cync_room_data.rooms[room].state == true && cync_data.cync_room_data.rooms[room].brightness != brightness) {
-		cync_data.cync_room_data.rooms[room].brightness = brightness
+	} else if (config.cync_room_data.rooms[room].state == true && config.cync_room_data.rooms[room].brightness != brightness) {
+		config.cync_room_data.rooms[room].brightness = brightness
 		googleAssistantQuery(room,true,brightness)
 	}
 	res.send('Received state update')
 })
 app.post('/turn-off', function (req, res) {
 	var room = req.body.room
-	if (cync_data.cync_room_data.rooms[room].state == true){
-		cync_data.cync_room_data.rooms[room].state = false
-		cync_data.cync_room_data.rooms[room].brightness = 0
+	if (config.cync_room_data.rooms[room].state == true){
+		config.cync_room_data.rooms[room].state = false
+		config.cync_room_data.rooms[room].brightness = 0
 		googleAssistantQuery(room,false)
 	}
 	res.send('Received state update')
@@ -166,9 +171,9 @@ app.post('/turn-off', function (req, res) {
 app.post('/entity-id', function (req, res){
 	var room = req.body.room
 	var entity_id = req.body.entity_id
-	if (cync_data.cync_room_data.rooms[room]){
+	if (config.cync_room_data.rooms[room]){
 		console.log('Added ' + entity_id + ' to ' + room)
-		cync_data.cync_room_data.rooms[room].entity_id = entity_id
+		config.cync_room_data.rooms[room].entity_id = entity_id
 	} else {
 		console.log('Unable to add entity ' + entity_id)
 	}
@@ -178,8 +183,8 @@ var server = app.listen(3001,function(){
 	console.log('Cync Server listening for init call from Cync Integration...')
 })
 
-//When addon exits or is restarted, save current cync_data
+//When addon exits or is restarted, save current config
 process.on('exit',function(){
-	console.log('Saving cync_data')
-	files.writeFileSync('cync_data.json',JSON.stringify(cync_data))
+	console.log('Saving config')
+	files.writeFileSync('config.json',JSON.stringify(config))
 })

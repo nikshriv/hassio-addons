@@ -45,6 +45,9 @@ class GoogleAssistant():
 
         [resp for resp in self.assistant.Assist(iter_assist_requests(),GRPC_DEADLINE)]
 
+    def refresh_credentials(self):
+        self.credentials.refresh(self.http_request)
+
 async def connect_stdin():
     loop = asyncio.get_event_loop()
     reader = asyncio.StreamReader()
@@ -57,12 +60,16 @@ async def main():
     assistant = None
     while True:
         req = await reader.read(1000)
-        request = json.loads(req)
-        if request['credentials']:
-            assistant = GoogleAssistant(request['credentials'])
-        if request['query'] and assistant is not None:
-            loop = asyncio.get_event_loop()
-            loop.run_in_executor(None, assistant.assist, request['query'])
+        req_json = json.loads(req)
+        for req_type,request in req_json.items():
+            if req_type == 'credentials':
+                assistant = GoogleAssistant(request)
+            if req_type == 'query' and assistant is not None:
+                loop = asyncio.get_event_loop()
+                loop.run_in_executor(None, assistant.assist, request)
+            if req_type == 'refresh' and assistant is not None:
+                loop = asyncio.get_event_loop()
+                loop.run_in_executor(None, assistant.refresh_credentials)
 
 
 if __name__ == "__main__":
