@@ -120,8 +120,8 @@ function googleAssistantQuery(room,state,brightness){
 }
 
 //At addon startup, check if config exists, otherwise wait for setup and initialization from HA
-if (files.existsSync('config.json')){
-	config = JSON.parse(files.readFileSync('config.json','utf8'))
+if (files.existsSync('cync_data.json')){
+	config = JSON.parse(files.readFileSync('cync_data.json','utf8'))
 	if (!googleAssistant){
 		startGoogleAssistant(config.google_credentials)
 	}
@@ -143,7 +143,7 @@ app.post('/setup', function (req, res) {
 	if (!cbygeTcpServer){
 		monitorCbygeSwitches(new Uint8Array(config.cync_credentials))
 	}
-	files.writeFileSync('config.json',JSON.stringify(req.body))
+	files.writeFileSync('cync_data.json',JSON.stringify(req.body))
 	res.send('Received configuration data')
 })
 app.post('/turn-on', function (req, res) {
@@ -186,5 +186,5 @@ var server = app.listen(3001,function(){
 //When addon exits or is restarted, save current config
 process.on('exit',function(){
 	console.log('Saving config')
-	files.writeFileSync('config.json',JSON.stringify(config))
+	files.writeFileSync('cync_data.json',JSON.stringify(config))
 })
