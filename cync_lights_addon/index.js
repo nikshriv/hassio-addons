@@ -33,6 +33,7 @@ function monitorCbygeSwitches(cync_credentials) {
 						var room = config.cync_room_data.switchID_to_room[deviceId]
 						if (!power && config.cync_room_data.rooms[room].switches[deviceId].state){
 							config.cync_room_data.rooms[room].switches[deviceId].state = power
+							config.cync_room_data.rooms[room].switches[deviceId].brightness = 0
 							var currentStateAll = false
 							for (let sw in config.cync_room_data.rooms[room].switches){
 								if (config.cync_room_data.rooms[room].switches[sw].state){currentStateAll = true}
@@ -48,14 +49,18 @@ function monitorCbygeSwitches(cync_credentials) {
 								}						
 							}
 						}
-						else if (power && (!config.cync_room_data.rooms[room].state || config.cync_room_data.rooms[room].brightness != brightness)){
-							config.cync_room_data.rooms[room].state = power
-							config.cync_room_data.rooms[room].brightness = brightness
-							console.log("Turning on " + room)
-							if (config.cync_room_data.rooms[room].entity_id != ''){
-								console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to on')
-								http.post('http://supervisor/core/api/services/light/turn_on',{'entity_id':config.cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-								.catch(function(err){console.log(err.message)})
+						else if (power && (!config.cync_room_data.rooms[room].switches[deviceId].state || config.cync_room_data.rooms[room].switches[deviceId].brightness != brightness)){
+							config.cync_room_data.rooms[room].switches[deviceId].state = power
+							config.cync_room_data.rooms[room].switches[deviceId].brightness = brightness
+							if (power && (!config.cync_room_data.rooms[room].state || config.cync_room_data.rooms[room].brightness != brightness)){
+								config.cync_room_data.rooms[room].state = power
+								config.cync_room_data.rooms[room].brightness = brightness
+								console.log("Turning on " + room)
+								if (config.cync_room_data.rooms[room].entity_id != ''){
+									console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to on')
+									http.post('http://supervisor/core/api/services/light/turn_on',{'entity_id':config.cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+									.catch(function(err){console.log(err.message)})
+								}
 							}
 						}
 						console.log("device: ", config.cync_room_data.rooms[room].switches[deviceId].name, "\tpower on: ", power,"\tbrightness: ", brightness)
