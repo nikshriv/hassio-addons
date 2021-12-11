@@ -151,6 +151,17 @@ app.post('/setup', function (req, res) {
 	files.writeFileSync('cync_data.json',JSON.stringify(req.body))
 	res.send('Received configuration data')
 })
+app.post('/init', function (req, res){
+	var room = req.body.room
+	var room_data = req.body.room_data
+	if (config.cync_room_data.rooms[room]){
+		console.log('Added ' + room, JSON.stringify(room_data))
+		config.cync_room_data.rooms[room] = room_data
+	} else {
+		console.log('Unable to add data for ' + room)
+	}
+	res.send('Received ' + room)
+})
 app.post('/turn-on', function (req, res) {
 	var room = req.body.room
 	var brightness = req.body.brightness
@@ -172,17 +183,6 @@ app.post('/turn-off', function (req, res) {
 		googleAssistantQuery(room,false)
 	}
 	res.send('Received state update')
-})
-app.post('/entity-id', function (req, res){
-	var room = req.body.room
-	var entity_id = req.body.entity_id
-	if (config.cync_room_data.rooms[room]){
-		console.log('Added ' + entity_id + ' to ' + room)
-		config.cync_room_data.rooms[room].entity_id = entity_id
-	} else {
-		console.log('Unable to add entity ' + entity_id)
-	}
-	res.send('Received ' + entity_id)
 })
 var server = app.listen(3001,function(){
 	console.log('Cync Server listening for init call from Cync Integration...')
