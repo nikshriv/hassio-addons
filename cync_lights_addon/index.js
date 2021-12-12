@@ -31,39 +31,25 @@ function monitorCbygeSwitches(cync_credentials) {
 					var deviceId = data.readUInt32BE(index + 5).toString()
 					if (config.cync_room_data.switchID_to_room[deviceId]){
 						var room = config.cync_room_data.switchID_to_room[deviceId]
-						if (!power && config.cync_room_data.rooms[room].switches[deviceId].state){
+						if (power != config.cync_room_data.rooms[room].switches[deviceId].state || brightness != config.cync_room_data.rooms[room].switches[deviceId].brightness){
 							config.cync_room_data.rooms[room].switches[deviceId].state = power
-							config.cync_room_data.rooms[room].switches[deviceId].brightness = 0
-							var currentStateAll = false
+							config.cync_room_data.rooms[room].switches[deviceId].brightness = brightness
+							var currentStateAll = power
 							for (let sw in config.cync_room_data.rooms[room].switches){
-								if (config.cync_room_data.rooms[room].switches[sw].state){currentStateAll = true}
+								if (config.cync_room_data.rooms[room].switches[sw].state != currentStateAll || config.cync_room_data.rooms[room].switches[sw].brightness != brightness){currentStateAll = !power}
 							}
-							if (!currentStateAll){
+							if (currentStateAll == power){
 								config.cync_room_data.rooms[room].state = power
 								config.cync_room_data.rooms[room].brightness = brightness
-								console.log('Turning off ' + room)
+								var state = power ? 'on':'off'
+								var stateInfo = power ? {'entity_id':config.cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)} : {'entity_id':config.cync_room_data.rooms[room].entity_id}
 								if (config.cync_room_data.rooms[room].entity_id != ''){
 									console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to off')
-									http.post('http://supervisor/core/api/services/light/turn_off',{'entity_id':config.cync_room_data.rooms[room].entity_id},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+									http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 									.catch(function(err){console.log(err.message)})
 								}						
 							}
 						}
-						else if (power && (!config.cync_room_data.rooms[room].switches[deviceId].state || config.cync_room_data.rooms[room].switches[deviceId].brightness != brightness)){
-							config.cync_room_data.rooms[room].switches[deviceId].state = power
-							config.cync_room_data.rooms[room].switches[deviceId].brightness = brightness
-							if (power && (!config.cync_room_data.rooms[room].state || config.cync_room_data.rooms[room].brightness != brightness)){
-								config.cync_room_data.rooms[room].state = power
-								config.cync_room_data.rooms[room].brightness = brightness
-								console.log("Turning on " + room)
-								if (config.cync_room_data.rooms[room].entity_id != ''){
-									console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to on')
-									http.post('http://supervisor/core/api/services/light/turn_on',{'entity_id':config.cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)},{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-									.catch(function(err){console.log(err.message)})
-								}
-							}
-						}
-						console.log("device: ", config.cync_room_data.rooms[room].switches[deviceId].name, "\tpower on: ", power,"\tbrightness: ", brightness)
 					}
 				}
 			}
@@ -110,16 +96,15 @@ function googleAssistantQuery(room,state,brightness){
 	if (googleAssistant){
 		var query = ""
 		var switchNames = ""
-		if (brightness){
-			query = "Set brightness to " + brightness.toString() + " for "
-		} else {
-			query = state ? "Turn on " : "Turn off "
-		}
 		for (let sw in config.cync_room_data.rooms[room].switches){
 			switchNames = switchNames + "and " + config.cync_room_data.rooms[room].switches[sw].name
 		}
 		switchNames = switchNames.slice(4)
-		query = query + switchNames
+		if (brightness){
+			query = "Set " + switchNames + " to " + brightness.toString() + "%"
+		} else {
+			query = state ? "Turn on " + switchNames : "Turn off " + switchNames
+		}
 		googleAssistant.stdin.write('{"query":"' + query + '"}')
 	}
 }
@@ -163,6 +148,14 @@ app.post('/init', function (req, res){
 	res.send('Received ' + room)
 })
 app.post('/turn-on', function (req, res) {
+	var room = req.body.room
+	if (!config.cync_room_data.rooms[room].state){
+		config.cync_room_data.rooms[room].state = true
+		googleAssistantQuery(room,true)
+	}
+	res.send('Received state update')
+})
+app.post('/set-brightness', function (req, res) {
 	var room = req.body.room
 	var brightness = req.body.brightness
 	if (config.cync_room_data.rooms[room].state == false){
