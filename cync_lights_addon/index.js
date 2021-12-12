@@ -95,17 +95,20 @@ function startGoogleAssistant(credentials){
 function googleAssistantQuery(room,state,brightness){
 	if (googleAssistant){
 		var query = ""
-		var switchNames = ""
+		var count = 0
 		for (let sw in config.cync_room_data.rooms[room].switches){
-			switchNames = switchNames + "and " + config.cync_room_data.rooms[room].switches[sw].name
+			count++
+			if (brightness){
+				query = "Set " + config.cync_room_data.rooms[room].switches[sw].name + " to " + brightness.toString() + "%"
+			} else {
+				query = state ? "Turn on " + config.cync_room_data.rooms[room].switches[sw].name : "Turn off " + config.cync_room_data.rooms[room].switches[sw].name
+			}
+			setTimeout(function(){
+				if (googleAssistant){
+					googleAssistant.stdin.write('{"query":"' + query + '"}')
+				}
+			},count*100)
 		}
-		switchNames = switchNames.slice(4)
-		if (brightness){
-			query = "Set " + switchNames + " to " + brightness.toString() + "%"
-		} else {
-			query = state ? "Turn on " + switchNames : "Turn off " + switchNames
-		}
-		googleAssistant.stdin.write('{"query":"' + query + '"}')
 	}
 }
 
@@ -158,11 +161,11 @@ app.post('/turn-on', function (req, res) {
 app.post('/set-brightness', function (req, res) {
 	var room = req.body.room
 	var brightness = req.body.brightness
-	if (config.cync_room_data.rooms[room].state == false){
+	if (!config.cync_room_data.rooms[room].state){
 		config.cync_room_data.rooms[room].state = true
 		config.cync_room_data.rooms[room].brightness = brightness
 		googleAssistantQuery(room,true,brightness)
-	} else if (config.cync_room_data.rooms[room].state == true && config.cync_room_data.rooms[room].brightness != brightness) {
+	} else if (config.cync_room_data.rooms[room].state && config.cync_room_data.rooms[room].brightness != brightness) {
 		config.cync_room_data.rooms[room].brightness = brightness
 		googleAssistantQuery(room,true,brightness)
 	}
@@ -170,7 +173,7 @@ app.post('/set-brightness', function (req, res) {
 })
 app.post('/turn-off', function (req, res) {
 	var room = req.body.room
-	if (config.cync_room_data.rooms[room].state == true){
+	if (config.cync_room_data.rooms[room].state){
 		config.cync_room_data.rooms[room].state = false
 		config.cync_room_data.rooms[room].brightness = 0
 		googleAssistantQuery(room,false)
