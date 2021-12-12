@@ -44,7 +44,7 @@ function monitorCbygeSwitches(cync_credentials) {
 								var state = power ? 'on':'off'
 								var stateInfo = power ? {'entity_id':config.cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)} : {'entity_id':config.cync_room_data.rooms[room].entity_id}
 								if (config.cync_room_data.rooms[room].entity_id != ''){
-									console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to off')
+									console.log('Updating ' + config.cync_room_data.rooms[room].entity_id + ' to ' + state + ' with brightness ' + brightness.toString())
 									http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 									.catch(function(err){console.log(err.message)})
 								}						
@@ -140,8 +140,8 @@ app.post('/init', function (req, res){
 	var room = req.body.room
 	var room_data = req.body.room_data
 	if (config.cync_room_data.rooms[room]){
-		console.log('Added ' + room, JSON.stringify(room_data))
 		config.cync_room_data.rooms[room] = room_data
+		console.log("Added " + room)
 	} else {
 		console.log('Unable to add data for ' + room)
 	}
