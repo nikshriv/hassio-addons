@@ -96,18 +96,19 @@ function googleAssistantQuery(room,state,brightness){
 	if (googleAssistant){
 		var query = ""
 		var count = 0
-		for (let sw in config.cync_room_data.rooms[room].switches){
-			count++
+		var switchNames = config.cync_room_data.rooms[room].switch_names
+		for (var i = 0; i < switchNames.length; i++){
 			if (brightness){
-				query = "Set " + config.cync_room_data.rooms[room].switches[sw].name + " to " + brightness.toString() + "%"
+				query = "Set " + switchNames[i] + " to " + brightness.toString() + "%"
 			} else {
-				query = state ? "Turn on " + config.cync_room_data.rooms[room].switches[sw].name : "Turn off " + config.cync_room_data.rooms[room].switches[sw].name
+				query = state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i]
 			}
 			setTimeout(function(){
 				if (googleAssistant){
 					googleAssistant.stdin.write('{"query":"' + query + '"}')
 				}
-			},count*100)
+			},count*300)
+			count++
 		}
 	}
 }
@@ -129,14 +130,16 @@ if (files.existsSync('cync_data.json')){
 app.use(express.json()) // for parsing application/json
 app.post('/setup', function (req, res) {
 	console.log('Setting up new instance')
-	config = req.body
+	if (!config) {
+		config = req.body
+	}
 	if (!googleAssistant){
 		startGoogleAssistant(config.google_credentials)
 	}
 	if (!cbygeTcpServer){
 		monitorCbygeSwitches(new Uint8Array(config.cync_credentials))
 	}
-	files.writeFileSync('cync_data.json',JSON.stringify(req.body))
+	files.writeFileSync('cync_data.json',JSON.stringify(config))
 	res.send('Received configuration data')
 })
 app.post('/init', function (req, res){
