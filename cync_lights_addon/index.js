@@ -95,22 +95,22 @@ function startGoogleAssistant(credentials){
 
 function googleAssistantQuery(room,state,brightness){
 	if (googleAssistant){
-		var query = ""
-		var count = 0
+		var queries = []
 		var switchNames = config.cync_room_data.rooms[room].switch_names
 		for (var i = 0; i < switchNames.length; i++){
 			if (brightness){
-				query = "Set " + switchNames[i] + " to " + brightness.toString() + "%"
+				queries.push("Set " + switchNames[i] + " to " + brightness.toString() + "%")
 			} else {
-				query = state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i]
+				queries.push(state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i])
 			}
+		}
+		for (var i = 0; i < queries.length; i++){
 			setTimeout(function(){
 				if (googleAssistant){
-					console.log('Google assistant query sent: ' + query)
-					googleAssistant.stdin.write('{"query":"' + query + '"}')
+					console.log('Google assistant query sent: ' + queries[i])
+					googleAssistant.stdin.write('{"query":"' + queries[i] + '"}')
 				}
-			},count*300)
-			count++
+			},i*300)
 		}
 	}
 }
