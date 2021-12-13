@@ -149,7 +149,7 @@ app.post('/init', function (req, res){
 	var room_data = req.body.room_data
 	if (config.cync_room_data.rooms[room]){
 		config.cync_room_data.rooms[room] = room_data
-		console.log("Added " + room)
+		console.log("Added " + JSON.stringify(room_data))
 	} else {
 		console.log('Unable to add data for ' + room)
 	}
