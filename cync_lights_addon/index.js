@@ -99,20 +99,21 @@ function googleAssistantQuery(room,state,brightness){
 		var switchNames = config.cync_room_data.rooms[room].switch_names
 		for (var i = 0; i < switchNames.length; i++){
 			if (brightness){
-				queries.push("Set " + switchNames[i] + " to " + brightness.toString() + "%")
+				sendQuery("Set " + switchNames[i] + " to " + brightness.toString() + "%",i)
 			} else {
-				queries.push(state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i])
+				sendQuery(state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i],i)
 			}
 		}
-		for (var i = 0; i < queries.length; i++){
-			setTimeout(function(){
-				if (googleAssistant){
-					console.log('Google assistant query sent: ' + queries[i])
-					googleAssistant.stdin.write('{"query":"' + queries[i] + '"}')
-				}
-			},i*300)
-		}
 	}
+}
+
+function sendQuery(query,count){
+	setTimeout(function(){
+		if (googleAssistant){
+			console.log('Google assistant query sent: ' + query)
+			googleAssistant.stdin.write('{"query":"' + query + '"}')
+		}
+	},count*300)
 }
 
 //At addon startup, check if config exists, otherwise wait for setup and initialization from HA
