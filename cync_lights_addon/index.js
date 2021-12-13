@@ -71,6 +71,7 @@ function monitorCbygeSwitches(cync_credentials) {
 function startGoogleAssistant(credentials){
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
+		console.log('Started Google Assistant, awaiting commands...')
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
@@ -105,6 +106,7 @@ function googleAssistantQuery(room,state,brightness){
 			}
 			setTimeout(function(){
 				if (googleAssistant){
+					console.log('Google assistant query sent: ' + query)
 					googleAssistant.stdin.write('{"query":"' + query + '"}')
 				}
 			},count*300)
