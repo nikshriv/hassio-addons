@@ -144,6 +144,7 @@ if (files.existsSync('entry_id.json')){
 //Server for HA to send configuration data and initialize on startup
 app.use(express.json()) // for parsing application/json
 app.post('/init', function (req, res) {
+	console.log('Cync Lights Addon initialized')
 	if (googleAssistant){
 		googleAssistant.kill()
 		googleAssistant = null
@@ -153,6 +154,7 @@ app.post('/init', function (req, res) {
 		cbygeTcpServer = null
 	}
 	config = null
+	res.send('Cync Addon initiated)
 })
 app.post('/setup', function (req, res){
 	var room = req.body.room
@@ -209,5 +211,5 @@ app.post('/turn-off', function (req, res) {
 	res.send('Received state update')
 })
 var server = app.listen(3001,function(){
-	console.log('Cync Server listening for init call from Cync Integration...')
+	console.log('Cync Lights Adddon started...')
 })
