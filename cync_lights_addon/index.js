@@ -168,10 +168,6 @@ app.post('/setup', function (req, res){
 	if (!config){
 		config = req.body.setup_data
 	}
-	if (!entry_id){
-		entry_id = req.body.entity_id
-		writeEntryId()
-	}
 	if (config.cync_room_data.rooms[room]){
 		config.cync_room_data.rooms[room] = room_data
 		console.log("Added " + JSON.stringify(room_data))
@@ -183,6 +179,10 @@ app.post('/setup', function (req, res){
 	}
 	if (!googleAssistant){
 		startGoogleAssistant()
+	}
+	if (!entry_id){
+		entry_id = req.body.entry_id
+		writeEntryId()
 	}
 	res.send('Received ' + room)
 })
@@ -217,5 +217,5 @@ app.post('/turn-off', function (req, res) {
 	res.send('Received state update')
 })
 var server = app.listen(3001,function(){
-	console.log('Cync Lights Adddon started...')
+	console.log('Cync Lights Addon started...')
 })
