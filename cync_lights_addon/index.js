@@ -141,6 +141,12 @@ if (files.existsSync('entry_id.json')){
 	})
 }
 
+function writeEntryId(){
+	files.writeFile('entry_id.json',JSON.stringify({'entry_id':entry_id}),function(err){
+		console.log(err)
+	})
+}
+
 //Server for HA to send configuration data and initialize on startup
 app.use(express.json()) // for parsing application/json
 app.post('/init', function (req, res) {
@@ -164,7 +170,7 @@ app.post('/setup', function (req, res){
 	}
 	if (!entry_id){
 		entry_id = req.body.entity_id
-		files.writeFileSync('entry_id.json',JSON.stringify({'entry_id':entry_id}))
+		writeEntryId()
 	}
 	if (config.cync_room_data.rooms[room]){
 		config.cync_room_data.rooms[room] = room_data
