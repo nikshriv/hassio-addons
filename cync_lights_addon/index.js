@@ -154,7 +154,7 @@ app.post('/init', function (req, res) {
 		cbygeTcpServer = null
 	}
 	config = null
-	res.send('Cync Addon initiated)
+	res.send('Cync Addon initiated')
 })
 app.post('/setup', function (req, res){
 	var room = req.body.room
