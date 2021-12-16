@@ -11,6 +11,7 @@ var app = express()
 var googleAssistant = null
 var cbygeTcpServer = null
 var config = null
+var entry_id = null
 
 function monitorCbygeSwitches(cync_credentials) {
 	const type43 = new Uint8Array([0x43,0x00,0x00,0x00])
@@ -116,43 +117,64 @@ function sendQuery(query,count){
 	},count*300)
 }
 
-//At addon startup, check if config exists, otherwise wait for setup and initialization from HA
-if (files.existsSync('cync_data.json')){
-	config = JSON.parse(files.readFileSync('cync_data.json','utf8'))
-	if (!googleAssistant){
-		startGoogleAssistant(config.google_credentials)
-	}
-	if (!cbygeTcpServer){
-		monitorCbygeSwitches(new Uint8Array(config.cync_credentials))
-	}
+//At addon startup, check if the Cync Lights Integration was previously installed and configured, then reload the Integration to initialize this addon
+if (files.existsSync('entry_id.json')){
+	entry_id = JSON.parse(files.readFileSync('entry_id.json','utf8')).entry_id
+	http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+	.catch(function(err){console.log('Unable to reach the Cync Lights Integration. Please install and configure the integration.')})	
 } else {
-	console.log('Please start configuration with Cync Itegration')
+	http.get('http://supervisor/core/api/config/config_entries/entry',{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}}).then(function(response){
+		var configEntries = response.data
+		configEntries.forEach(function(entry){
+			if (entry.domain == 'cync_lights'){
+				entry_id = entry.entry_id
+			}
+		})
+		if (entry_id){
+			files.writeFileSync('entry_id.json',JSON.stringify({'entry_id':entry_id}))
+			http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})		
+		} else {
+			console.log('Please install and configure the Cync Lights Itegration')			
+		}
+	}).catch(function(err){
+		console.log('Unable to connect to home assistant')		
+	})
 }
 
 //Server for HA to send configuration data and initialize on startup
 app.use(express.json()) // for parsing application/json
-app.post('/setup', function (req, res) {
-	console.log('Setting up new instance')
-	if (!config) {
-		config = req.body
+app.post('/init', function (req, res) {
+	if (googleAssistant){
+		googleAssistant.kill()
+		googleAssistant = null
 	}
-	if (!googleAssistant){
-		startGoogleAssistant(config.google_credentials)
+	if (cbygeTcpServer) {
+		cbygeTcpServer.destroy()
+		cbygeTcpServer = null
 	}
-	if (!cbygeTcpServer){
-		monitorCbygeSwitches(new Uint8Array(config.cync_credentials))
-	}
-	files.writeFileSync('cync_data.json',JSON.stringify(config))
-	res.send('Received configuration data')
+	config = null
 })
-app.post('/init', function (req, res){
+app.post('/setup', function (req, res){
 	var room = req.body.room
 	var room_data = req.body.room_data
+	if (!config){
+		config = req.body.setup_data
+	}
+	if (!entry_id){
+		entry_id = req.body.entity_id
+		files.writeFileSync('entry_id.json',JSON.stringify({'entry_id':entry_id}))
+	}
 	if (config.cync_room_data.rooms[room]){
 		config.cync_room_data.rooms[room] = room_data
 		console.log("Added " + JSON.stringify(room_data))
 	} else {
 		console.log('Unable to add data for ' + room)
+	}
+	if (!cbygeTcpServer){
+		monitorCbygeSwitches()
+	}
+	if (!googleAssistant){
+		startGoogleAssistant()
 	}
 	res.send('Received ' + room)
 })
@@ -188,10 +210,4 @@ app.post('/turn-off', function (req, res) {
 })
 var server = app.listen(3001,function(){
 	console.log('Cync Server listening for init call from Cync Integration...')
-})
-
-//When addon exits or is restarted, save current config
-process.on('exit',function(){
-	console.log('Saving config')
-	files.writeFileSync('cync_data.json',JSON.stringify(config))
 })
