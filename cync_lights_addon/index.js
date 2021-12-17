@@ -73,7 +73,6 @@ function monitorCbygeSwitches(cync_credentials) {
 }
 
 function startGoogleAssistant(credentials){
-	console.log(credentials)
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
 		console.log('Started Google Assistant, awaiting commands...')
