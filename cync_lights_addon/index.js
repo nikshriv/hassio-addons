@@ -121,7 +121,9 @@ function sendQuery(query,count){
 
 function writeEntryId(){
 	files.writeFile('entry_id.json',JSON.stringify({'entry_id':entry_id}),function(err){
-		console.log(err)
+		if (err){
+			console.log(err)
+		}
 	})
 }
 
