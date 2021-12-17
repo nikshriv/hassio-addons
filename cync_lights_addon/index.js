@@ -99,7 +99,6 @@ function startGoogleAssistant(credentials){
 
 function googleAssistantQuery(room,state,brightness){
 	if (googleAssistant){
-		var queries = []
 		var switchNames = cync_room_data.rooms[room].switch_names
 		for (var i = 0; i < switchNames.length; i++){
 			if (brightness){
@@ -174,22 +173,22 @@ app.post('/setup', function (req, res){
 		cync_room_data = req.body.cync_room_data
 		cync_credentials = req.body.cync_credentials
 		google_credentials = req.body.google_credentials
+		if (!cbygeTcpServer){
+			monitorCbygeSwitches(new Uint8Array(cync_credentials))
+		}
+		if (!googleAssistant){
+			startGoogleAssistant(google_credentials)
+		}
+		if (!entry_id){
+			entry_id = req.body.entry_id
+			writeEntryId()
+		}
 	}
 	if (cync_room_data.rooms[room]){
 		cync_room_data.rooms[room] = room_data
 		console.log("Added " + JSON.stringify(room_data))
 	} else {
 		console.log('Unable to add data for ' + room)
-	}
-	if (!cbygeTcpServer){
-		monitorCbygeSwitches(new Uint8Array(cync_credentials))
-	}
-	if (!googleAssistant){
-		startGoogleAssistant(google_credentials)
-	}
-	if (!entry_id){
-		entry_id = req.body.entry_id
-		writeEntryId()
 	}
 	res.send('Received ' + room)
 })
