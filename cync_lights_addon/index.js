@@ -73,6 +73,7 @@ function monitorCbygeSwitches(cync_credentials) {
 }
 
 function startGoogleAssistant(credentials){
+	console.log(credentials)
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
 		console.log('Started Google Assistant, awaiting commands...')
@@ -186,7 +187,7 @@ app.post('/setup', function (req, res){
 	}
 	if (cync_room_data.rooms[room]){
 		cync_room_data.rooms[room] = room_data
-		console.log("Added " + JSON.stringify(room_data))
+		console.log("Added " + room)
 	} else {
 		console.log('Unable to add data for ' + room)
 	}
