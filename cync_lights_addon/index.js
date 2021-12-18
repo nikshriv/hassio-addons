@@ -17,7 +17,8 @@ var config = null
 var entry_id = null
 
 function log(message){
-    console.log ( '[' + new Date().toISOString() + '] -', message )
+    var date = new Date()
+    console.log ( '[' + date.toLocaleDateString() + ' ' + date.toLocaleTimeString() '] -', message )
 }
 
 function monitorCbygeSwitches(cync_credentials) {
