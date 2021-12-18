@@ -16,11 +16,15 @@ var google_credentials = null
 var config = null
 var entry_id = null
 
+function log(message){
+    console.log ( '[' + new Date().toISOString() + '] -', message )
+}
+
 function monitorCbygeSwitches(cync_credentials) {
 	const type43 = new Uint8Array([0x43,0x00,0x00,0x00])
 	const type83 = new Uint8Array([0x83,0x00,0x00,0x00])
 	cbygeTcpServer = net.createConnection({ port: 23778, host: 'cm.gelighting.com' }, function() {
-		console.log('Monitoring cbyge server for state changes...')      
+		log('Monitoring cbyge server for state changes...')      
 		cbygeTcpServer.write(cync_credentials)
 	})      
 	cbygeTcpServer.on('data', function(data){
@@ -48,9 +52,9 @@ function monitorCbygeSwitches(cync_credentials) {
 								var state = power ? 'on':'off'
 								var stateInfo = power ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)} : {'entity_id':cync_room_data.rooms[room].entity_id}
 								if (cync_room_data.rooms[room].entity_id != ''){
-									console.log('Updating ' + cync_room_data.rooms[room].entity_id + ' to ' + state + ' with brightness ' + brightness.toString())
+									log('Updating ' + cync_room_data.rooms[room].entity_id + ' to ' + state + ' with brightness ' + brightness.toString())
 									http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-									.catch(function(err){console.log(err.message)})
+									.catch(function(err){log(err.message)})
 								}						
 							}
 						}
@@ -64,7 +68,7 @@ function monitorCbygeSwitches(cync_credentials) {
 		} 
 	})      
 	cbygeTcpServer.on('end', function(){
-	  	console.log('Disconnected from Cync TCP server')
+	  	log('Disconnected from Cync TCP server')
 	})      
 
 	const maintainConnection = setInterval(function(){
@@ -75,20 +79,20 @@ function monitorCbygeSwitches(cync_credentials) {
 function startGoogleAssistant(credentials){
 	googleAssistant = spawn('python3',['./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
-		console.log('Started Google Assistant, awaiting commands...')
+		log('Started Google Assistant, awaiting commands...')
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
-		console.log(data.toString())
+		log(data.toString())
 	})
 	googleAssistant.stderr.on('data',function(data){
-		console.log(data.toString())
+		log(data.toString())
 	})
 	googleAssistant.on('exit',function(code){
-		console.log('assistant_text_query.py exited with code: ',code)
+		log('assistant_text_query.py exited')
 	})
 	googleAssistant.on('close',function(code){
-		console.log('assistant_text_query.py closed with code: ',code)
+		log('assistant_text_query.py closed')
 	})
 
 	//refresh google credentials every 12 hours
@@ -113,7 +117,7 @@ function googleAssistantQuery(room,state,brightness){
 function sendQuery(query,count){
 	setTimeout(function(){
 		if (googleAssistant){
-			console.log('Google assistant query sent: ' + query)
+			log('Google assistant query: ' + query)
 			googleAssistant.stdin.write('{"query":"' + query + '"}')
 		}
 	},count*300)
@@ -122,7 +126,7 @@ function sendQuery(query,count){
 function writeEntryId(){
 	files.writeFile('entry_id.json',JSON.stringify({'entry_id':entry_id}),function(err){
 		if (err){
-			console.log(err)
+			log(err.message)
 		}
 	})
 }
@@ -131,7 +135,7 @@ function writeEntryId(){
 if (files.existsSync('entry_id.json')){
 	entry_id = JSON.parse(files.readFileSync('entry_id.json','utf8')).entry_id
 	http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-	.catch(function(err){console.log('Unable to reach the Cync Lights Integration. Please install and configure the integration.')})	
+	.catch(function(err){log('Unable to reach the Cync Lights Integration. Please install and configure the integration.')})	
 } else {
 	http.get('http://supervisor/core/api/config/config_entries/entry',{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}}).then(function(response){
 		var configEntries = response.data
@@ -144,17 +148,17 @@ if (files.existsSync('entry_id.json')){
 			writeEntryId()
 			http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})		
 		} else {
-			console.log('Please install and configure the Cync Lights Integration')			
+			log('Please install and configure the Cync Lights Integration')			
 		}
 	}).catch(function(err){
-		console.log('Unable to connect to home assistant')		
+		log('Unable to connect to home assistant')		
 	})
 }
 
 //Server for HA to send configuration data and initialize on startup
 app.use(express.json()) // for parsing application/json
 app.post('/init', function (req, res) {
-	console.log('Cync Lights Addon initialized')
+	log('Cync Lights Addon initialized')
 	if (googleAssistant){
 		googleAssistant.kill()
 		googleAssistant = null
@@ -188,9 +192,9 @@ app.post('/setup', function (req, res){
 	}
 	if (cync_room_data.rooms[room]){
 		cync_room_data.rooms[room] = room_data
-		console.log("Added " + room)
+		log("Added " + room)
 	} else {
-		console.log('Unable to add data for ' + room)
+		log('Unable to add data for ' + room)
 	}
 	res.send('Received ' + room)
 })
@@ -225,5 +229,5 @@ app.post('/turn-off', function (req, res) {
 	res.send('Received state update')
 })
 var server = app.listen(3001,function(){
-	console.log('Cync Lights Addon started...')
+	log('Cync Lights Addon started...')
 })
