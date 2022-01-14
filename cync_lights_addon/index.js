@@ -22,50 +22,53 @@ function log(message){
 }
 
 function monitorCbygeSwitches(cync_credentials) {
-	const type43 = new Uint8Array([0x43,0x00,0x00,0x00])
-	const type83 = new Uint8Array([0x83,0x00,0x00,0x00])
 	cbygeTcpServer = net.createConnection({ port: 23778, host: 'cm.gelighting.com' }, function() {
 		log('Monitoring cbyge server for state changes...')      
 		cbygeTcpServer.write(cync_credentials)
 	})      
 	cbygeTcpServer.on('data', function(data){
-		var type43Index = data.indexOf(type43)
-		var type83Index = data.indexOf(type83)
-		var index = type43Index >= 0 || type83Index >= 0 ? (type43Index>=0 && (type83Index<0 || type43Index<type83Index)) ? type43Index: type83Index>=0 ? type83Index:-1:-1
-		while (index >=0) {
-			if (data.length >= index + 18) {
-				if (data.readUInt32BE(index + 9) == 16844293){
-					var power = data.readUInt8(index + 16) > 0
-					var brightness = data.readUInt8(index + 17)
-					var deviceId = data.readUInt32BE(index + 5).toString()
-					if (cync_room_data.switchID_to_room[deviceId]){
-						var room = cync_room_data.switchID_to_room[deviceId]
-						if (power != cync_room_data.rooms[room].switches[deviceId].state || brightness != cync_room_data.rooms[room].switches[deviceId].brightness){
-							cync_room_data.rooms[room].switches[deviceId].state = power
-							cync_room_data.rooms[room].switches[deviceId].brightness = brightness
-							var currentStateAll = power
-							for (let sw in cync_room_data.rooms[room].switches){
-								if (cync_room_data.rooms[room].switches[sw].state != currentStateAll || cync_room_data.rooms[room].switches[sw].brightness != brightness){currentStateAll = !power}
-							}
-							if (currentStateAll == power){
-								cync_room_data.rooms[room].state = power
-								cync_room_data.rooms[room].brightness = brightness
-								var state = power ? 'on':'off'
-								var stateInfo = power ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)} : {'entity_id':cync_room_data.rooms[room].entity_id}
-								if (cync_room_data.rooms[room].entity_id != ''){
-									log('Updating ' + cync_room_data.rooms[room].entity_id + ' to ' + state + ' with brightness ' + brightness.toString())
-									http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-									.catch(function(err){log(err.message)})
-								}						
+		var packetLength = 0
+		var packetType = 0
+		var packet = []
+		while (data.length >= 5) {
+			packetType = data.readUInt8(0)
+			packetLength = data.readUInt32BE(1)
+			packet =  data.slice(5,packetLength + 5)
+			data = data.length > packetLength + 5 ? data.slice(packetLength + 5):[]
+			switch (packetType){
+				case 67:	//state change
+				case 131:	//packet handler
+					if (packetLength >= 13) {
+						if (packet.readUInt32BE(4) == 16844293){
+							var power = packet.readUInt8(11) > 0
+							var brightness = packet.readUInt8(12)
+							var deviceId = packet.readUInt32BE(0)
+							if (cync_room_data.switchID_to_room[deviceId]){
+								var room = cync_room_data.switchID_to_room[deviceId]
+								if (power != cync_room_data.rooms[room].switches[deviceId].state || brightness != cync_room_data.rooms[room].switches[deviceId].brightness){
+									cync_room_data.rooms[room].switches[deviceId].state = power
+									cync_room_data.rooms[room].switches[deviceId].brightness = brightness
+									var currentStateAll = power
+									for (let sw in cync_room_data.rooms[room].switches){
+										if (cync_room_data.rooms[room].switches[sw].state != currentStateAll || cync_room_data.rooms[room].switches[sw].brightness != brightness){currentStateAll = !power}
+									}
+									if (currentStateAll == power){
+										cync_room_data.rooms[room].state = power
+										cync_room_data.rooms[room].brightness = brightness
+										var state = power ? 'on':'off'
+										var stateInfo = power ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)} : {'entity_id':cync_room_data.rooms[room].entity_id}
+										if (cync_room_data.rooms[room].entity_id != ''){
+											log('Updating ' + cync_room_data.rooms[room].entity_id + ' to ' + state + ' with brightness ' + brightness.toString())
+											http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+											.catch(function(err){log(err.message)})
+										}						
+									}
+								}
 							}
 						}
 					}
-				}
+					break
 			}
-			data = data.slice(index +1)
-			type43Index = data.indexOf(type43)
-			type83Index = data.indexOf(type83)
-			index = type43Index >= 0 || type83Index >= 0 ? (type43Index>=0 && (type83Index<0 || type43Index<type83Index)) ? type43Index: type83Index>=0 ? type83Index:-1:-1
 		} 
 	})      
 	cbygeTcpServer.on('end', function(){
