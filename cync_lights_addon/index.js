@@ -183,7 +183,6 @@ app.post('/setup', function (req, res){
 		cync_room_data = req.body.cync_room_data
 		cync_credentials = req.body.cync_credentials
 		google_credentials = req.body.google_credentials
-		console.log(google_credentials)
 		if (!cbygeTcpServer){
 			monitorCbygeSwitches(new Uint8Array(cync_credentials))
 		}
