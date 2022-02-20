@@ -170,6 +170,7 @@ if (files.existsSync('entry_id.json')){
 		})
 		if (entry_id){
 			writeEntryId()
+			log('Reloading Cync Lights Integration')
 			http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})		
 		} else {
 			log('Please install and configure the Cync Lights Integration')			
