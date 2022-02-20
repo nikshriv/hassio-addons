@@ -15,17 +15,28 @@ var cync_credentials = null
 var google_credentials = null
 var config = null
 var entry_id = null
+var reconnecting = null
+var maintainConnection = null
 
 function log(message){
     var date = new Date()
     console.log ( '[' + date.toLocaleDateString() + ' ' + date.toLocaleTimeString() + '] -', message )
 }
 
-function monitorCbygeSwitches(cync_credentials) {
+function monitorCbygeSwitches(credentials) {
 	cbygeTcpServer = net.createConnection({ port: 23778, host: 'cm.gelighting.com' }, function() {
 		log('Monitoring cbyge server for state changes...')      
-		cbygeTcpServer.write(cync_credentials)
-	})      
+	})
+	cbygeTcpServer.on('connect', function(){
+		cbygeTcpServer.write(credentials)
+		maintainConnection = setInterval(function(){
+			cbygeTcpServer.write(credentials) 
+		},120000)
+		if (reconnecting) {
+			clearInterval(reconnecting)
+			reconnecting = null
+		}		
+	}
 	cbygeTcpServer.on('data', function(data){
 		var packetLength = 0
 		var packetType = 0
@@ -72,12 +83,15 @@ function monitorCbygeSwitches(cync_credentials) {
 		} 
 	})      
 	cbygeTcpServer.on('end', function(){
-	  	log('Disconnected from Cync TCP server')
+	  	log('Disconnected from Cync TCP server...attempting to reconnect in 2 minutes')
+		if (maintainConnection){
+			clearInterval(maintainConnection)
+			maintainConnection = null
+		}
+		reconnecting =  setInterval(function(){
+			monitorCbygeSwitches(credentials)
+		},120000)
 	})      
-
-	const maintainConnection = setInterval(function(){
-		cbygeTcpServer.write(cync_credentials) 
-	},120000)
 }
 
 function startGoogleAssistant(credentials){
@@ -91,18 +105,24 @@ function startGoogleAssistant(credentials){
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
+		if (googleAssistant){
+			googleAssistant.kill()
+			googleAssistant = null
+		}
+	})
+	googleAssistant.on('error',function(){
+		if (googleAssistant){
+			googleAssistant.kill()
+			googleAssistant = null
+		}
 	})
 	googleAssistant.on('exit',function(code){
-		log('assistant_text_query.py exited')
+		log('assistant_text_query.py exited, restarting Google Assistant')
+		startGoogleAssistant(credentials)
 	})
 	googleAssistant.on('close',function(code){
 		log('assistant_text_query.py closed')
 	})
-
-	//refresh google credentials every 12 hours
-//	setInterval(function(){
-//		googleAssistant.stdin.write(JSON.stringify({"refresh":"credentials"}))
-//	},43200000)
 }
 
 function googleAssistantQuery(room,state,brightness){
