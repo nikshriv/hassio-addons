@@ -183,6 +183,14 @@ if (files.existsSync('entry_id.json')){
 app.use(express.json()) // for parsing application/json
 app.post('/init', function (req, res) {
 	log('Cync Lights Addon initialized')
+	if (reconnecting){
+		clearInterval(reconnecting)
+		reconnecting = null
+	}
+	if (maintainConnection){
+		clearInterval(maintainConnection)
+		maintainConnection = null
+	}
 	if (googleAssistant){
 		googleAssistant.kill()
 		googleAssistant = null
@@ -214,9 +222,12 @@ app.post('/setup', function (req, res){
 			writeEntryId()
 		}
 	}
-	if (cync_room_data.rooms[room]){
-		cync_room_data.rooms[room] = room_data
-		log("Added " + room)
+	if (cync_room_data.rooms[room] && cync_room_data.rooms[room] != room_data){
+		var state = cync_room_data.rooms[room].state ? 'on':'off'
+		var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':Math.round(cync_room_data.rooms[room].brightness*255/100)} : {'entity_id':cync_room_data.rooms[room].entity_id}
+		log('Adding ' + cync_room_data.rooms[room].entity_id + ' with ' + state + ' and brightness ' + cync_room_data.rooms[room].brightness.toString())
+		http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+		.catch(function(err){log(err.message)})
 	} else {
 		log('Unable to add data for ' + room)
 	}
