@@ -105,10 +105,10 @@ function startGoogleAssistant(credentials){
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
-		if (googleAssistant){
-			googleAssistant.kill()
-			googleAssistant = null
-		}
+//		if (googleAssistant){
+//			googleAssistant.kill()
+//			googleAssistant = null
+//		}
 	})
 	googleAssistant.on('error',function(){
 		if (googleAssistant){
