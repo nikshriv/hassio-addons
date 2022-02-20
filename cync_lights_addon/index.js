@@ -36,7 +36,7 @@ function monitorCbygeSwitches(credentials) {
 			clearInterval(reconnecting)
 			reconnecting = null
 		}		
-	}
+	})
 	cbygeTcpServer.on('data', function(data){
 		var packetLength = 0
 		var packetType = 0
