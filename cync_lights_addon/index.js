@@ -107,7 +107,7 @@ function startGoogleAssistant(credentials){
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
-		assistantQuery.emit(data.toString())
+		assistantQuery.emit(data.toString().replace(' ','').trim())
 		log('Assistant Received: ' + data.toString())
 	})
 	googleAssistant.stderr.on('data',function(data){
@@ -145,7 +145,7 @@ function googleAssistantQuery(room,state,brightness){
 function sendQuery(query){
 	if (queryArray.length == 0){
 		queryArray.push(query)
-		assistantQuery.once(query,function(){
+		assistantQuery.once(query.replace(' ','').trim(),function(){
 			queryArray.splice(queryArray.indexOf(query),1)
 			log('Length of queryArray: ' + queryArray.length)
 			if (queryArray.length > 0) {
