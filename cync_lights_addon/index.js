@@ -237,7 +237,7 @@ app.post('/setup', function (req, res){
 			setTimeout(function(){
 				http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 				.catch(function(err){log(err.message)})
-			},300*(registeredRooms-1))
+			},300*(registeredRooms+3))
 		}
 	} else {
 		log('Unable to add data for ' + room)
