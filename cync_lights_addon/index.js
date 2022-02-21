@@ -124,9 +124,6 @@ function startGoogleAssistant(credentials){
 		log('assistant_text_query.py exited, restarting Google Assistant')
 		startGoogleAssistant(credentials)
 	})
-	googleAssistant.on('close',function(code){
-		log('assistant_text_query.py closed')
-	})
 }
 
 function googleAssistantQuery(room,state,brightness){
