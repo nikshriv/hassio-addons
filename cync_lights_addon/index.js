@@ -108,6 +108,7 @@ function startGoogleAssistant(credentials){
 	})
 	googleAssistant.stdout.on('data',function(data){
 		assistantQuery.emit(data.toString())
+		console.log('received' + data.toString())
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
