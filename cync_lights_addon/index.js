@@ -211,7 +211,7 @@ app.post('/init', function (req, res) {
 app.post('/setup', function (req, res){
 	var room = req.body.room
 	var room_data = req.body.room_data
-	registeredSwitches++
+	registeredRooms++
 	if (!cync_room_data || !cync_credentials || !google_credentials){
 		cync_room_data = req.body.cync_room_data
 		cync_credentials = req.body.cync_credentials
