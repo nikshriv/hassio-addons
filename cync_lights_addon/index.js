@@ -4,6 +4,10 @@ const files = require('fs')
 const process = require('process')
 const WebSocket = require('ws').WebSocket
 const {spawn} = require('child_process')
+const EventEmitter = require('events')
+const assistantQuery = new EventEmitter()
+var queryArray = []
+assistantQuery.setMaxListeners(100)
 
 var express = require('express')
 var app = express()
@@ -103,9 +107,7 @@ function startGoogleAssistant(credentials){
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
-		if (data.toString() == 'query_complete'){
-			
-		}
+		assistantQuery.emit(data.toString())
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
@@ -131,21 +133,36 @@ function googleAssistantQuery(room,state,brightness){
 		var switchNames = cync_room_data.rooms[room].switch_names
 		for (var i = 0; i < switchNames.length; i++){
 			if (brightness){
-				sendQuery("Set " + switchNames[i] + " to " + brightness.toString() + "%",i)
+				sendQuery("Set " + switchNames[i] + " to " + brightness.toString() + "%")
 			} else {
-				sendQuery(state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i],i)
+				sendQuery(state ? "Turn on " + switchNames[i] : "Turn off " + switchNames[i])
 			}
 		}
 	}
 }
 
-function sendQuery(query,count){
-	setTimeout(function(){
-		if (googleAssistant){
-			log('Google assistant query: ' + query)
-			googleAssistant.stdin.write('{"query":"' + query + '"}')
-		}
-	},count*300)
+function sendQuery(query){
+	if (queryArray.length == 0){
+		queryArray.push(query)
+		assistantQuery.once(query,function(){
+			queryArray.splice(queryArray.indexOf(query,1))
+			if (queryArray.length > 0) {
+				log('Google assistant query: ' + queryArray[0])
+				googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
+			}
+		})
+		log('Google assistant query: ' + query)
+		googleAssistant.stdin.write('{"query":"' + query + '"}')
+	} else {
+		queryArray.push(query)
+		assistantQuery.once(query,function(){
+			queryArray.splice(queryArray.indexOf(query,1))
+			if (queryArray.length > 0) {
+				log('Google assistant query: ' + queryArray[0])
+				googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
+			}
+		})
+	}
 }
 
 function writeEntryId(){
