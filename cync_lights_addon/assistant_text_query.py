@@ -44,7 +44,7 @@ class GoogleAssistant():
             yield req
 
         [resp for resp in self.assistant.Assist(iter_assist_requests(),GRPC_DEADLINE)]
-        print('query_complete')
+        print(text_query)
 
     def refresh_credentials(self):
         self.credentials.refresh(self.http_request)
