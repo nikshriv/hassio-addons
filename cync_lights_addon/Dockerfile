@@ -1,4 +1,4 @@
-FROM nikolaik/python-nodejs:python3.9-nodejs17
+FROM node:17.5-bullseye
 
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -8,9 +8,9 @@ ENV LANG C.UTF-8
 
 # Install packages
 RUN apt-get update
-RUN apt-get install -y libportaudio2 alsa-utils \
+RUN apt-get install -y python3.9 python3-pip libportaudio2 alsa-utils \
         portaudio19-dev libffi-dev libssl-dev libmpg123-dev git
-RUN pip3 install --upgrade google-assistant-grpc google-auth-oauthlib \
+RUN pip install --upgrade google-assistant-grpc google-auth-oauthlib \
         setuptools wheel google-assistant-sdk[samples]
 RUN apt-get clean -y
 RUN git clone https://github.com/nikshriv/hassio-addons && \
