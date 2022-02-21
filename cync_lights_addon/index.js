@@ -152,7 +152,7 @@ function sendQuery(query){
 			googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
 		}
 	})
-	if (queryArray.length == 0){
+	if (queryArray.length == 1){
 		log('Google assistant query: ' + query)
 		googleAssistant.stdin.write('{"query":"' + query + '"}')
 	}
