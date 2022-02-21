@@ -143,27 +143,18 @@ function googleAssistantQuery(room,state,brightness){
 }
 
 function sendQuery(query){
+	queryArray.push(query)
+	assistantQuery.once(query.replace(' ','').trim(),function(){
+		queryArray.splice(queryArray.indexOf(query),1)
+		log('Length of queryArray: ' + queryArray.length)
+		if (queryArray.length > 0) {
+			log('Google assistant query: ' + queryArray[0])
+			googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
+		}
+	})
 	if (queryArray.length == 0){
-		queryArray.push(query)
-		assistantQuery.once(query.replace(' ','').trim(),function(){
-			queryArray.splice(queryArray.indexOf(query),1)
-			log('Length of queryArray: ' + queryArray.length)
-			if (queryArray.length > 0) {
-				log('Google assistant query: ' + queryArray[0])
-				googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
-			}
-		})
 		log('Google assistant query: ' + query)
 		googleAssistant.stdin.write('{"query":"' + query + '"}')
-	} else {
-		queryArray.push(query)
-		assistantQuery.once(query,function(){
-			queryArray.splice(queryArray.indexOf(query),1)
-			if (queryArray.length > 0) {
-				log('Google assistant query: ' + queryArray[0])
-				googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
-			}
-		})
 	}
 }
 
