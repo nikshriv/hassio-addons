@@ -105,10 +105,10 @@ function startGoogleAssistant(credentials){
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
-//		if (googleAssistant){
-//			googleAssistant.kill()
-//			googleAssistant = null
-//		}
+		if (googleAssistant){
+			googleAssistant.kill()
+			googleAssistant = null
+		}
 	})
 	googleAssistant.on('error',function(){
 		if (googleAssistant){
@@ -223,12 +223,15 @@ app.post('/setup', function (req, res){
 			writeEntryId()
 		}
 	}
-	if (cync_room_data.rooms[room] && cync_room_data.rooms[room] != room_data){
-		var state = cync_room_data.rooms[room].state ? 'on':'off'
-		var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':Math.round(cync_room_data.rooms[room].brightness*255/100)} : {'entity_id':cync_room_data.rooms[room].entity_id}
-		log('Adding ' + cync_room_data.rooms[room].entity_id + ' with ' + state + ' and brightness ' + cync_room_data.rooms[room].brightness.toString())
-		http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-		.catch(function(err){log(err.message)})
+	if (cync_room_data.rooms[room]){
+		var brightness = Math.round(cync_room_data.rooms[room].brightness*255/100)
+		if (cync_room_data.rooms[room].state != room_data.state || brightness != room_data.brightness){
+			var state = cync_room_data.rooms[room].state ? 'on':'off'
+			var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':brightness)} : {'entity_id':cync_room_data.rooms[room].entity_id}
+			log('Adding ' + cync_room_data.rooms[room].entity_id + ' with state ' + state + ' and brightness ' + cync_room_data.rooms[room].brightness.toString())
+			http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+			.catch(function(err){log(err.message)})
+		}
 	} else {
 		log('Unable to add data for ' + room)
 	}
