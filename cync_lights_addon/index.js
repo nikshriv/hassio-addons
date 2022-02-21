@@ -227,7 +227,7 @@ app.post('/setup', function (req, res){
 		var brightness = Math.round(cync_room_data.rooms[room].brightness*255/100)
 		if (cync_room_data.rooms[room].state != room_data.state || brightness != room_data.brightness){
 			var state = cync_room_data.rooms[room].state ? 'on':'off'
-			var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':brightness)} : {'entity_id':cync_room_data.rooms[room].entity_id}
+			var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':brightness} : {'entity_id':cync_room_data.rooms[room].entity_id}
 			log('Adding ' + cync_room_data.rooms[room].entity_id + ' with state ' + state + ' and brightness ' + cync_room_data.rooms[room].brightness.toString())
 			http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 			.catch(function(err){log(err.message)})
