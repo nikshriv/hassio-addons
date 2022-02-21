@@ -101,7 +101,7 @@ function monitorCbygeSwitches(credentials) {
 }
 
 function startGoogleAssistant(credentials){
-	googleAssistant = spawn('python3',['./assistant_text_query.py'])
+	googleAssistant = spawn('python3',['-u','./assistant_text_query.py'])
 	googleAssistant.on('spawn',function(){
 		log('Started Google Assistant, awaiting commands...')
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
