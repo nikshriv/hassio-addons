@@ -108,7 +108,7 @@ function startGoogleAssistant(credentials){
 	})
 	googleAssistant.stdout.on('data',function(data){
 		assistantQuery.emit(data.toString())
-		console.log('received' + data.toString())
+		log('Assistant Received: ' + data.toString())
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
@@ -147,6 +147,7 @@ function sendQuery(query){
 		queryArray.push(query)
 		assistantQuery.once(query,function(){
 			queryArray.splice(queryArray.indexOf(query),1)
+			log('Length of queryArray: ' + queryArray.length)
 			if (queryArray.length > 0) {
 				log('Google assistant query: ' + queryArray[0])
 				googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
