@@ -17,6 +17,8 @@ var config = null
 var entry_id = null
 var reconnecting = null
 var maintainConnection = null
+var registeredRooms = 0
+var roomCount = 0
 
 function log(message){
     var date = new Date()
@@ -170,8 +172,9 @@ if (files.existsSync('entry_id.json')){
 		})
 		if (entry_id){
 			writeEntryId()
-			log('Reloading Cync Lights Integration')
-			http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})		
+			log('Reloading Cync Lights Integration, ' + entry_id)
+			http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+			.catch(function(err){log('Unable to reload Cync Lights Integration. Please reload the integration.')})
 		} else {
 			log('Please install and configure the Cync Lights Integration')			
 		}
@@ -208,10 +211,12 @@ app.post('/init', function (req, res) {
 app.post('/setup', function (req, res){
 	var room = req.body.room
 	var room_data = req.body.room_data
+	registeredSwitches++
 	if (!cync_room_data || !cync_credentials || !google_credentials){
 		cync_room_data = req.body.cync_room_data
 		cync_credentials = req.body.cync_credentials
 		google_credentials = req.body.google_credentials
+		roomCount = Object.keys(cync_room_data.rooms).length
 		if (!cbygeTcpServer){
 			monitorCbygeSwitches(new Uint8Array(cync_credentials))
 		}
@@ -229,11 +234,16 @@ app.post('/setup', function (req, res){
 			var state = cync_room_data.rooms[room].state ? 'on':'off'
 			var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':brightness} : {'entity_id':cync_room_data.rooms[room].entity_id}
 			log('Adding ' + cync_room_data.rooms[room].entity_id + ' with state ' + state + ' and brightness ' + cync_room_data.rooms[room].brightness.toString())
-			http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-			.catch(function(err){log(err.message)})
+			setTimeout(function(){
+				http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+				.catch(function(err){log(err.message)})
+			},200*(registeredRooms-1))
 		}
 	} else {
 		log('Unable to add data for ' + room)
+	}
+	if (registeredRooms == roomCount){
+		registeredRooms = 0
 	}
 	res.send('Received ' + room)
 })
