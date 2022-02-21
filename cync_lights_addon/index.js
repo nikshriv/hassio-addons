@@ -103,7 +103,9 @@ function startGoogleAssistant(credentials){
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
-		log(data.toString())
+		if (data.toString() == 'query_complete'){
+			
+		}
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
