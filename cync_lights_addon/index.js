@@ -146,7 +146,7 @@ function sendQuery(query){
 	if (queryArray.length == 0){
 		queryArray.push(query)
 		assistantQuery.once(query,function(){
-			queryArray.splice(queryArray.indexOf(query,1))
+			queryArray.splice(queryArray.indexOf(query),1)
 			if (queryArray.length > 0) {
 				log('Google assistant query: ' + queryArray[0])
 				googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
