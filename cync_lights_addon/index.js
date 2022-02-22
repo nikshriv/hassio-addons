@@ -6,6 +6,7 @@ const WebSocket = require('ws').WebSocket
 const {spawn} = require('child_process')
 const EventEmitter = require('events')
 const assistantQuery = new EventEmitter()
+const integrationReload = new EventEmitter()
 var queryArray = []
 assistantQuery.setMaxListeners(100)
 
@@ -164,8 +165,8 @@ function writeEntryId(){
 //At addon startup, check if the Cync Lights Integration was previously installed and configured, then reload the Integration to initialize this addon
 if (files.existsSync('entry_id.json')){
 	entry_id = JSON.parse(files.readFileSync('entry_id.json','utf8')).entry_id
-	http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-	.catch(function(err){log('Unable to reach the Cync Lights Integration. Please install and configure the integration.')})	
+	log('Reloading Cync Lights Integration using saved entry_id')
+	reloadIntegration()
 } else {
 	http.get('http://supervisor/core/api/config/config_entries/entry',{headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}}).then(function(response){
 		var configEntries = response.data
@@ -177,16 +178,27 @@ if (files.existsSync('entry_id.json')){
 		if (entry_id){
 			writeEntryId()
 			log('Reloading Cync Lights Integration')
-			setTimeout(function(){
-				http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-				.catch(function(err){log('Unable to reload Cync Lights Integration. Please reload the integration.')})
-			},1000)
+			reloadIntegration()
 		} else {
 			log('Please install and configure the Cync Lights Integration')			
 		}
 	}).catch(function(err){
 		log('Unable to connect to home assistant')		
 	})
+}
+
+function reloadIntegration(){
+	var reloadAttemptInterval = null
+	integrationReload.on('reloaded',function(){
+		if (reloadAttemptInterval) {
+			clearInterval(reloadAttemptInterval)
+		}
+		integrationReload.removeAllListeners('reloaded')
+	}
+	reloadAttemptInterval = setInterval(function(){
+		http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+		.catch(function(err){log('Unable to reload Cync Lights Integration...trying again in 2 seconds')})
+	},2000)
 }
 
 //Server for HA to send configuration data and initialize on startup
@@ -235,6 +247,9 @@ app.post('/setup', function (req, res){
 	}
 	if (!cync_room_data){
 		cync_room_data = req.body.cync_room_data
+	}
+	if (integrationReload.listenerCount > 0){
+		integrationReload.emit('reloaded')
 	}
 	var state = ''
 	if (room_data.state){
