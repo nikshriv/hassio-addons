@@ -189,11 +189,10 @@ if (files.existsSync('entry_id.json')){
 
 function reloadIntegration(){
 	var reloadAttemptInterval = null
-	integrationReload.on('reloaded',function(){
+	integrationReload.once('reloaded',function(){
 		if (reloadAttemptInterval) {
 			clearInterval(reloadAttemptInterval)
 		}
-		integrationReload.removeAllListeners('reloaded')
 	})
 	reloadAttemptInterval = setInterval(function(){
 		http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
@@ -229,6 +228,7 @@ app.post('/init', function (req, res) {
 app.post('/setup', function (req, res){
 	var room = req.body.room
 	var room_data = req.body.room_data
+	integrationReload.emit('reloaded')
 	if (!google_credentials){
 		google_credentials = req.body.google_credentials
 		if (!googleAssistant){
@@ -247,9 +247,6 @@ app.post('/setup', function (req, res){
 	}
 	if (!cync_room_data){
 		cync_room_data = req.body.cync_room_data
-	}
-	if (integrationReload.listenerCount > 0){
-		integrationReload.emit('reloaded')
 	}
 	var state = ''
 	if (room_data.state){
