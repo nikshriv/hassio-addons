@@ -236,13 +236,16 @@ app.post('/setup', function (req, res){
 	if (!cync_room_data){
 		cync_room_data = req.body.cync_room_data
 	}
+	var state = ''
 	if (room_data.state){
 		room_data.brightness = Math.round(room_data.brightness*100/255)
+		state = 'on'
 	} else {
 		room_data.brightness = 0
+		state = 'off'
 	}
 	cync_room_data.rooms[room] = room_data
-	log('Registered ' + room + ' with state ' + room_data.state ? 'on':'off' + ' and brightness ' + room_data.brightness.toString())
+	log('Registered ' + room + ' with state ' + state + ' and brightness ' + room_data.brightness.toString())
 	res.send('Received ' + room)
 })
 app.post('/turn-on', function (req, res) {
