@@ -144,7 +144,6 @@ function sendQuery(query){
 	queryArray.push(query)
 	assistantQuery.once(query.replace(' ','').trim(),function(){
 		queryArray.splice(queryArray.indexOf(query),1)
-		log('Length of queryArray: ' + queryArray.length)
 		if (queryArray.length > 0) {
 			googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
 		}
@@ -239,6 +238,7 @@ app.post('/setup', function (req, res){
 	}
 	room_data.brightness = Math.round(room_data.brightness*100/255)
 	cync_room_data.rooms[room] = room_data
+	log('Registered ' + room + ' with state ' + room_data.state + ' and brightness ' + room_data.brightness.toString())
 	res.send('Received ' + room)
 })
 app.post('/turn-on', function (req, res) {
