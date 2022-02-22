@@ -21,8 +21,6 @@ var config = null
 var entry_id = null
 var reconnecting = null
 var maintainConnection = null
-var registeredRooms = 0
-var roomCount = 0
 
 function log(message){
     var date = new Date()
@@ -108,7 +106,7 @@ function startGoogleAssistant(credentials){
 	})
 	googleAssistant.stdout.on('data',function(data){
 		assistantQuery.emit(data.toString().replace(' ','').trim())
-		log('Assistant Received: ' + data.toString())
+		log('Assistant Received Request: ' + data.toString())
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
@@ -148,12 +146,10 @@ function sendQuery(query){
 		queryArray.splice(queryArray.indexOf(query),1)
 		log('Length of queryArray: ' + queryArray.length)
 		if (queryArray.length > 0) {
-			log('Google assistant query: ' + queryArray[0])
 			googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
 		}
 	})
 	if (queryArray.length == 1){
-		log('Google assistant query: ' + query)
 		googleAssistant.stdin.write('{"query":"' + query + '"}')
 	}
 }
@@ -182,9 +178,10 @@ if (files.existsSync('entry_id.json')){
 		if (entry_id){
 			writeEntryId()
 			log('Reloading Cync Lights Integration')
-			http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-			.then(function(resp){console.log(resp.data)})
-			.catch(function(err){log('Unable to reload Cync Lights Integration. Please reload the integration.')})
+			setTimeout(function(){
+				http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+				.catch(function(err){log('Unable to reload Cync Lights Integration. Please reload the integration.')})
+			},1000)
 		} else {
 			log('Please install and configure the Cync Lights Integration')			
 		}
@@ -221,40 +218,27 @@ app.post('/init', function (req, res) {
 app.post('/setup', function (req, res){
 	var room = req.body.room
 	var room_data = req.body.room_data
-	registeredRooms++
-	if (!cync_room_data || !cync_credentials || !google_credentials){
-		cync_room_data = req.body.cync_room_data
-		cync_credentials = req.body.cync_credentials
+	if (!google_credentials){
 		google_credentials = req.body.google_credentials
-		roomCount = Object.keys(cync_room_data.rooms).length
+		if (!googleAssistant){
+			startGoogleAssistant(google_credentials)
+		}		
+	}
+	if (!cync_credentials){
+		cync_credentials = req.body.cync_credentials
 		if (!cbygeTcpServer){
 			monitorCbygeSwitches(new Uint8Array(cync_credentials))
 		}
-		if (!googleAssistant){
-			startGoogleAssistant(google_credentials)
-		}
-		if (!entry_id){
-			entry_id = req.body.entry_id
-			writeEntryId()
-		}
 	}
-	if (cync_room_data.rooms[room]){
-		var brightness = Math.round(cync_room_data.rooms[room].brightness*255/100)
-		if (cync_room_data.rooms[room].state != room_data.state || brightness != room_data.brightness){
-			var state = cync_room_data.rooms[room].state ? 'on':'off'
-			var stateInfo = cync_room_data.rooms[room].state ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':brightness} : {'entity_id':cync_room_data.rooms[room].entity_id}
-			log('Adding ' + cync_room_data.rooms[room].entity_id + ' with state ' + state + ' and brightness ' + cync_room_data.rooms[room].brightness.toString())
-			setTimeout(function(){
-				http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-				.catch(function(err){log(err.message)})
-			},300*(registeredRooms+3))
-		}
-	} else {
-		log('Unable to add data for ' + room)
+	if (!entry_id){
+		entry_id = req.body.entry_id
+		writeEntryId()
 	}
-	if (registeredRooms == roomCount){
-		registeredRooms = 0
+	if (!cync_room_data){
+		cync_room_data = req.body.cync_room_data
 	}
+	room_data.brightness = Math.round(room_data.brightness*100/255)
+	cync_room_data.rooms[room] = room_data
 	res.send('Received ' + room)
 })
 app.post('/turn-on', function (req, res) {
