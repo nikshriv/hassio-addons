@@ -199,7 +199,7 @@ function reloadIntegration(){
 	reloadAttemptInterval = setInterval(function(){
 		http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
 		.catch(function(err){log('Unable to reload Cync Lights Integration...trying again in 2 seconds')})
-	},2000)
+	},5000)
 }
 
 //Server for HA to send configuration data and initialize on startup
