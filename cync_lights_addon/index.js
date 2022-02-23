@@ -106,8 +106,11 @@ function startGoogleAssistant(credentials){
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
-		assistantQuery.emit(data.toString().replace(' ','').trim())
-		log('Assistant Received Request: ' + data.toString())
+		var message = data.toString().replace(' ','').trim()
+		if (message != ''){
+			assistantQuery.emit(message)
+			log('Assistant Received Request: ' + message)
+		}
 	})
 	googleAssistant.stderr.on('data',function(data){
 		log(data.toString())
