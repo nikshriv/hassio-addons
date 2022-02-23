@@ -13,6 +13,7 @@ RUN apt-get install -y python3.9 python3-pip libportaudio2 alsa-utils \
 RUN pip install --upgrade google-assistant-grpc google-auth-oauthlib \
         setuptools wheel google-assistant-sdk[samples]
 RUN apt-get clean -y
+RUN npm install forever -g
 RUN git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
     npm install --unsafe-perm && \
