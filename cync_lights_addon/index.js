@@ -8,7 +8,7 @@ const EventEmitter = require('events')
 const assistantQuery = new EventEmitter()
 const integrationReload = new EventEmitter()
 var queryArray = []
-assistantQuery.setMaxListeners(100)
+assistantQuery.setMaxListeners(0)
 
 var express = require('express')
 var app = express()
@@ -24,8 +24,7 @@ var reconnecting = null
 var maintainConnection = null
 
 function log(message){
-    var date = new Date()
-    console.log ( '[' + date.toLocaleDateString() + ' ' + date.toLocaleTimeString() + '] -', message )
+    console.log (message)
 }
 
 function monitorCbygeSwitches(credentials) {
@@ -106,10 +105,10 @@ function startGoogleAssistant(credentials){
 		googleAssistant.stdin.write(JSON.stringify({'credentials':credentials}))
 	})
 	googleAssistant.stdout.on('data',function(data){
-		var message = data.toString().replace(' ','').trim()
+		var message = data.toString().replaceAll(' ','').trim()
 		if (message != ''){
 			assistantQuery.emit(message)
-			log('Assistant Received Request: ' + message)
+			log('Assistant Received Request: ' + data.toString())
 		}
 	})
 	googleAssistant.stderr.on('data',function(data){
@@ -146,7 +145,7 @@ function googleAssistantQuery(room,state,brightness){
 
 function sendQuery(query){
 	queryArray.push(query)
-	assistantQuery.once(query.replace(' ','').trim(),function(){
+	assistantQuery.once(query.replaceAll(' ','').trim(),function(){
 		queryArray.splice(queryArray.indexOf(query),1)
 		if (queryArray.length > 0) {
 			googleAssistant.stdin.write('{"query":"' + queryArray[0] + '"}')	
