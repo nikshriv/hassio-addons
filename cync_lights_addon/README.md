@@ -14,8 +14,8 @@ With this integration, I use Google Assistant to control the switches, so you wi
 7. Make sure that once when you configure the "Oauth Consent Screen: that you select "Publish App" under Publishing status
 8. Save your client secret file to paste when logging into the Cync Lights integration
 9. At the end of the Developer Project configuration page, click "Register the Device Model" and enter model information (it doesn't matter what you enter here)
-10. Finally, download your Oauth2.0 credentials and save
-11. Add the Cync Lights Integration custom component repository to HACS. (https://github.com/nikshriv/cync_lights)
+10. Finally, download your Oauth2.0 credentials and save the file.
+11. Add the Cync Lights Integration custom component repository to HACS and install it. (https://github.com/nikshriv/cync_lights)
 12. Log in with your Cync credentials and enter your 2-factor code if required.
 13. When prompted for your client secret, copy and paste the entire contents of your previously save Oauth2.0 credentials
 14. Paste the Google authentication code when prompted
