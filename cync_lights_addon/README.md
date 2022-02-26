@@ -1,6 +1,8 @@
 # Cync Lights Addon
 ## About
-A Home Assistant add-on to enable monitoring and control of Cync dimmer light switches. This works in conjunction with Cync Room Lights custom integration. I only own Cync dimmer switches, so I am sure it works with them. I do not own Cync on-off switches or bulbs, but I believe the addon should work with them as well.
+A Home Assistant add-on to enable monitoring and control of Cync dimmer light switches. This works in conjunction with Cync Room Lights custom integration. I only own Cync dimmer switches, so I am sure it works with them. I do not own Cync on-off switches or bulbs, but I believe the addon should work with them as well. 
+
+With this integration, I use Google Assistant to control the switches, so you will need to link your Cync account to Google Home. This seems to be the most reliable way to control these switches. 
 
 ## Installation
 1. Add this repository, https://github.com/nikshriv/hassio-addons, to your add-on store.
