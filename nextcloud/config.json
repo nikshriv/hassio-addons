@@ -1,0 +1,39 @@
+{
+    "name": "Nextcloud",
+    "version": "20.0.3",
+    "slug": "nextcloud",
+    "description": "Self-hosted file share and collaboration platform on the web",
+    "url": "https://github.com/mtthp/hassio-addons/tree/master/nextcloud",
+    "webui": "http://[HOST]:[PORT:80]",
+    "panel_icon": "mdi:cloud-sync",
+    "startup": "services",
+    "boot": "auto",
+    "ports": {
+        "80/tcp": null
+    },
+    "ports_description": {
+        "80/tcp": "Web interface"
+    },
+    "map": [
+        "share:rw"
+    ],
+    "options": {
+        "MYSQL_DATABASE": null,
+        "MYSQL_USER": null,
+        "MYSQL_PASSWORD": null,
+        "MYSQL_HOST": null,
+        "NEXTCLOUD_ADMIN_USER": "hassio",
+        "NEXTCLOUD_ADMIN_PASSWORD": null,
+        "NEXTCLOUD_TABLE_PREFIX": "nc_",
+        "NEXTCLOUD_TRUSTED_DOMAINS": "hassio.local"
+    },
+    "schema": false,
+    "arch": [
+        "aarch64",
+        "amd64",
+        "armhf",
+        "armv7",
+        "i386"
+    ],
+    "image": "mtthp/{arch}-addon-nextcloud"
+}
