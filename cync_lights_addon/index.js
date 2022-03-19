@@ -63,21 +63,7 @@ function monitorCbygeSwitches(credentials) {
 								if (power != cync_room_data.rooms[room].switches[deviceId].state || brightness != cync_room_data.rooms[room].switches[deviceId].brightness){
 									cync_room_data.rooms[room].switches[deviceId].state = power
 									cync_room_data.rooms[room].switches[deviceId].brightness = brightness
-									var currentStateAll = power
-									for (let sw in cync_room_data.rooms[room].switches){
-										if (cync_room_data.rooms[room].switches[sw].state != currentStateAll || cync_room_data.rooms[room].switches[sw].brightness != brightness){currentStateAll = !power}
-									}
-									if (currentStateAll == power){
-										cync_room_data.rooms[room].state = power
-										cync_room_data.rooms[room].brightness = brightness
-										var state = power ? 'on':'off'
-										var stateInfo = power ? {'entity_id':cync_room_data.rooms[room].entity_id,'brightness':Math.round(brightness*255/100)} : {'entity_id':cync_room_data.rooms[room].entity_id}
-										if (cync_room_data.rooms[room].entity_id != ''){
-											log('Updating ' + cync_room_data.rooms[room].entity_id + ' to ' + state + ' with brightness ' + brightness.toString())
-											http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-											.catch(function(err){log(err.message)})
-										}						
-									}
+									cync_room_data.rooms[room].updateHomeAssistantState()
 								}
 							}
 						}
@@ -96,6 +82,34 @@ function monitorCbygeSwitches(credentials) {
 			monitorCbygeSwitches(credentials)
 		},120000)
 	})      
+}
+
+function updateHomeAssistantState(){
+	var room = this
+	if (room.updateStateTimer){
+		clearTimeout(room.updateStateTimer)
+	}
+	this.updateStateTimer = setTimeout(function(){
+		var currentRoomState = false
+		var roomBrightnessTotal = 0
+		var switchCount = 0
+		for (let sw in room.switches){
+			switchCount++
+			if (sw.state) {
+				currentRoomState = true
+				roomBrightnessTotal = roomBrightnessTotal + sw.brightness
+			}			
+		}
+		room.state = currentRoomState
+		room.brightness = Math.round(roomBrightnessTotal/switchCount)
+		if (room.entity_id != ''){
+			var state = room.state ? 'on':'off'
+			var stateInfo = room.state ? {'entity_id':room.entity_id,'brightness':room.brightness*255/100} : {'entity_id':room.entity_id}
+			log('Updating ' + room.entity_id + ' to ' + state + ' with brightness ' + room.brightness.toString())
+			http.post('http://supervisor/core/api/services/light/turn_' + state, stateInfo, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
+			.catch(function(err){log(err.message)})
+		}
+	},1000)
 }
 
 function startGoogleAssistant(credentials){
@@ -200,7 +214,7 @@ function reloadIntegration(){
 	reloadAttemptInterval = setInterval(reload,5000)
 	function reload(){
 		http.post('http://supervisor/core/api/services/homeassistant/reload_config_entry', {'entry_id':entry_id}, {headers: {Authorization: 'Bearer ' + process.env.SUPERVISOR_TOKEN}})
-		.catch(function(err){log('Unable to reload Cync Lights Integration...trying again in 2 seconds')})		
+		.catch(function(err){log('Unable to reload Cync Lights Integration...trying again in 5 seconds')})		
 	}
 }
 
@@ -261,6 +275,8 @@ app.post('/setup', function (req, res){
 		state = 'off'
 	}
 	cync_room_data.rooms[room] = room_data
+	cync_room_data.rooms[room]["updateHomeAssistantState"] = updateHomeAssistantState
+	cycn_room_data.rooms[room]["updateStateTimer"] = null
 	log('Registered ' + room + ' with state ' + state + ' and brightness ' + room_data.brightness.toString())
 	res.send('Received ' + room)
 })
