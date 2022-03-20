@@ -15,8 +15,8 @@ RUN pip install --upgrade google-assistant-grpc google-auth-oauthlib \
 RUN apt-get clean -y
 RUN npm install pm2@latest -g
 RUN pm2 install pm2-logrotate
-RUN pm2 set pm2-logrotate:max_size 1K
-RUN pm2 set pm2-logrotate:retain 2
+RUN pm2 set pm2-logrotate:max_size 10K
+RUN pm2 set pm2-logrotate:retain 1
 RUN git clone https://github.com/nikshriv/hassio-addons && \
     cd /hassio-addons/cync_lights_addon && \
     npm install --unsafe-perm && \
