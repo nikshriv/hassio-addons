@@ -95,6 +95,7 @@ function updateHomeAssistantState(){
 		var switchCount = 0
 		for (let sw in room.switches){
 			switchCount++
+log(sw.state)
 			if (sw.state) {
 				currentRoomState = true
 				roomBrightnessTotal = roomBrightnessTotal + sw.brightness
