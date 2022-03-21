@@ -276,7 +276,7 @@ app.post('/setup', function (req, res){
 	}
 	cync_room_data.rooms[room] = room_data
 	cync_room_data.rooms[room]["updateHomeAssistantState"] = updateHomeAssistantState
-	Cync_room_data.rooms[room]["updateStateTimer"] = null
+	cync_room_data.rooms[room]["updateStateTimer"] = null
 	log('Registered ' + room + ' with state ' + state + ' and brightness ' + room_data.brightness.toString())
 	res.send('Received ' + room)
 })
