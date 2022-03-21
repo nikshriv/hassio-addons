@@ -89,7 +89,7 @@ function updateHomeAssistantState(){
 	if (room.updateStateTimer){
 		clearTimeout(room.updateStateTimer)
 	}
-	this.updateStateTimer = setTimeout(function(){
+	room.updateStateTimer = setTimeout(function(){
 		var currentRoomState = false
 		var roomBrightnessTotal = 0
 		var switchCount = 0
