@@ -8,7 +8,7 @@ ENV LANG C.UTF-8
 
 # Install packages
 RUN apt-get update
-RUN apt-get install -y python3.9 python3-pip libportaudio2 alsa-utils \
+RUN apt-get install -y python3.7 python3-pip libportaudio2 alsa-utils \
         portaudio19-dev libffi-dev libssl-dev libmpg123-dev git
 RUN pip install --upgrade google-assistant-grpc google-auth-oauthlib \
         setuptools wheel google-assistant-sdk[samples]
