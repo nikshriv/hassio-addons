@@ -1,4 +1,7 @@
 # Cync Lights Addon
+
+## THIS ADDON IS DEPRECATED AND CAN BE DELETED IF YOU PREVIOUSLY INSTALLED IT. THE CYNC ROOM LIGHTS INTEGRATION WORKS WITHOUT THE NEED FOR THIS ADDON
+
 ## About
 A Home Assistant add-on to enable monitoring and control of Cync dimmer light switches. This works in conjunction with Cync Room Lights custom integration. I only own Cync dimmer switches, so I am sure it works with them. I do not own Cync on-off switches or bulbs, but I believe the addon should work with them as well. 
 
